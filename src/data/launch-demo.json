@@ -1,0 +1,37 @@
+{
+  "lieux": [
+    {"id": "L01", "nom": "Urban Soccer Paris 19", "ville": "Paris", "type": "7v7 indoor"},
+    {"id": "L02", "nom": "Foot5 Lille", "ville": "Lille", "type": "5v5/7v7"},
+    {"id": "L03", "nom": "Soccer Planet Lyon", "ville": "Lyon", "type": "7v7 indoor"},
+    {"id": "L04", "nom": "Five Stars Marseille", "ville": "Marseille", "type": "7v7"},
+    {"id": "L05", "nom": "Win Sport Toulouse", "ville": "Toulouse", "type": "7v7"},
+    {"id": "L06", "nom": "Urban Soccer Nantes", "ville": "Nantes", "type": "7v7 indoor"},
+    {"id": "L07", "nom": "Le Five Bordeaux", "ville": "Bordeaux", "type": "7v7"},
+    {"id": "L08", "nom": "City Stade Strasbourg", "ville": "Strasbourg", "type": "7v7"}
+  ],
+  "joueurs": [
+    {"id": "J01", "prenom": "Sofiane", "ville": "Paris", "note": 4.2, "matchs": 8},
+    {"id": "J02", "prenom": "Lucas", "ville": "Lille", "note": 3.8, "matchs": 6},
+    {"id": "J03", "prenom": "Emma", "ville": "Lyon", "note": 4.5, "matchs": 10},
+    {"id": "J04", "prenom": "Thomas", "ville": "Paris", "note": 3.5, "matchs": 5},
+    {"id": "J05", "prenom": "Sarah", "ville": "Lille", "note": 4.0, "matchs": 7},
+    {"id": "J06", "prenom": "Karim", "ville": "Lyon", "note": 4.8, "matchs": 12},
+    {"id": "J07", "prenom": "Julie", "ville": "Marseille", "note": 3.9, "matchs": 4},
+    {"id": "J08", "prenom": "Rayan", "ville": "Paris", "note": 2.9, "matchs": 3},
+    {"id": "J09", "prenom": "Mehdi", "ville": "Toulouse", "note": 4.1, "matchs": 6},
+    {"id": "J10", "prenom": "Clara", "ville": "Nantes", "note": 3.7, "matchs": 5},
+    {"id": "J11", "prenom": "Maxime", "ville": "Bordeaux", "note": 4.3, "matchs": 9},
+    {"id": "J12", "prenom": "Samia", "ville": "Strasbourg", "note": 3.4, "matchs": 4}
+  ],
+  "matchs": [
+    {"id": "M001", "date": "2025-03-10", "heure": "20h30", "lieu_id": "L01", "type": "7v7", "scoreA": 4, "scoreB": 3, "org_id": "J01", "joueurs": ["J01", "J04", "J08"]},
+    {"id": "M002", "date": "2025-03-12", "heure": "21h00", "lieu_id": "L02", "type": "5v5", "scoreA": 2, "scoreB": 2, "org_id": "J05", "joueurs": ["J02", "J05"]},
+    {"id": "M003", "date": "2025-03-15", "heure": "19h00", "lieu_id": "L03", "type": "7v7", "scoreA": 5, "scoreB": 1, "org_id": "J06", "joueurs": ["J03", "J06"]},
+    {"id": "M004", "date": "2025-03-18", "heure": "20h00", "lieu_id": "L04", "type": "7v7", "scoreA": 1, "scoreB": 3, "org_id": "J07", "joueurs": ["J07"]}
+  ],
+  "matchs_ouverts": [
+    {"id": "DO1", "date": "2026-05-20", "heure": "20h30", "lieu_id": "L01", "type": "7v7", "prix": 6, "nb_max": 10, "nb_inscrits": 4, "org_id": "J01"},
+    {"id": "DO2", "date": "2026-05-24", "heure": "19h00", "lieu_id": "L03", "type": "7v7", "prix": 5.5, "nb_max": 12, "nb_inscrits": 8, "org_id": "J06"},
+    {"id": "DO3", "date": "2026-05-28", "heure": "21h00", "lieu_id": "L06", "type": "7v7 indoor", "prix": 7, "nb_max": 10, "nb_inscrits": 2, "org_id": "J10"}
+  ]
+}

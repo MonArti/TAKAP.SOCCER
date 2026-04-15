@@ -119,6 +119,11 @@ export type Database = {
         }
         Returns: string
       }
+      get_public_profile_extras: {
+        Args: { p_profile_id: string }
+        /** jsonb renvoyé par Postgres */
+        Returns: Record<string, unknown>
+      }
     }
     Enums: {
       match_statut: MatchStatut

@@ -25,6 +25,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink to="/" className={navClass} end>
               Matchs
             </NavLink>
+            <NavLink to="/demo" className={navClass}>
+              Démo
+            </NavLink>
             {user ? (
               <>
                 <NavLink to="/matchs/nouveau" className={navClass}>
@@ -32,6 +35,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </NavLink>
                 <NavLink to="/mes-matchs" className={navClass}>
                   Mes matchs
+                </NavLink>
+                <NavLink to="/joueurs" className={navClass}>
+                  Joueurs
                 </NavLink>
                 <NavLink to="/profil" className={navClass}>
                   Profil
@@ -78,7 +84,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
       <footer className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-400">
-        Takap.Soccer — foot amateur entre joueurs
+        <p>Takap.Soccer — foot amateur entre joueurs</p>
+        <p className="mt-1 text-[10px] text-zinc-500">
+          Accueil : recherche + filtres + exemples Takap (UI jan. 2026) — si absent, forcer un redeploy
+          Vercel ou vider le cache.
+        </p>
       </footer>
     </div>
   )

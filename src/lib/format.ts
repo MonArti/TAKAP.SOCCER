@@ -14,8 +14,32 @@ export function formatHeure(heure: string) {
   return `${h}:${m ?? '00'}`
 }
 
+/** Affichage heure démo « 20h30 » ou time SQL. */
+export function formatHeureAffichage(heure: string) {
+  if (heure.includes('h')) return heure
+  return formatHeure(heure)
+}
+
 export function euros(n: number) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+}
+
+/** Niveau affiché à partir de la note moyenne (indicatif). */
+export function niveauIndicatifFromNote(noteMoyenne: number): string {
+  if (noteMoyenne <= 0) return 'Pas encore noté'
+  if (noteMoyenne < 2.25) return 'Débutant'
+  if (noteMoyenne < 3.25) return 'Loisir'
+  if (noteMoyenne < 4.25) return 'Confirmé'
+  return 'Très solide'
+}
+
+/** Recherche insensible aux accents / casse. */
+export function normalizeSearch(s: string) {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
 }
 
 export function parseNoteMoyenne(v: unknown): number {

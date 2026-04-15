@@ -10,6 +10,11 @@ import { MatchDetailPage } from '@/pages/MatchDetailPage'
 import { MyMatchesPage } from '@/pages/MyMatchesPage'
 import { PublicProfilePage } from '@/pages/PublicProfilePage'
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage'
+import { DemoExplorePage } from '@/pages/DemoExplorePage'
+import { DemoJoueurPage } from '@/pages/DemoJoueurPage'
+import { DemoMatchPage } from '@/pages/DemoMatchPage'
+import { DemoOpenMatchPage } from '@/pages/DemoOpenMatchPage'
+import { JoueursExplorePage } from '@/pages/JoueursExplorePage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -32,6 +37,18 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/joueur/:id" element={<PublicProfilePage />} />
+        <Route
+          path="/joueurs"
+          element={
+            <Protected>
+              <JoueursExplorePage />
+            </Protected>
+          }
+        />
+        <Route path="/demo" element={<DemoExplorePage />} />
+        <Route path="/demo/joueur/:id" element={<DemoJoueurPage />} />
+        <Route path="/demo/match/:id" element={<DemoMatchPage />} />
+        <Route path="/demo/ouvert/:id" element={<DemoOpenMatchPage />} />
         <Route
           path="/profil"
           element={
