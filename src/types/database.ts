@@ -1,5 +1,7 @@
 export type MatchStatut = 'ouvert' | 'termine'
 
+export type ProfileRole = 'user' | 'admin'
+
 export type ProfileRow = {
   id: string
   email: string | null
@@ -9,6 +11,8 @@ export type ProfileRow = {
   poids: number | null
   note_moyenne: number
   nb_matchs: number
+  /** Absent si la colonne n’existe pas encore en base (exécuter admin_role.sql) */
+  role?: ProfileRole
   created_at: string
   updated_at: string
 }
@@ -56,6 +60,7 @@ export type Database = {
           poids?: number | null
           note_moyenne?: number
           nb_matchs?: number
+          role?: ProfileRole
         }
         Update: Partial<Omit<ProfileRow, 'id'>> & { id?: string }
         Relationships: []

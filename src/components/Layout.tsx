@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { isSupabaseConfigured } from '@/lib/supabase'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -8,7 +9,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   ].join(' ')
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin, adminResolved } = useAuth()
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -35,6 +36,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <NavLink to="/profil" className={navClass}>
                   Profil
                 </NavLink>
+                {adminResolved && isAdmin && (
+                  <NavLink to="/admin" className={navClass}>
+                    Admin
+                  </NavLink>
+                )}
                 <button
                   type="button"
                   onClick={() => void signOut()}
@@ -59,6 +65,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
+      {!isSupabaseConfigured && (
+        <div
+          role="alert"
+          className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900"
+        >
+          <strong>Configuration Supabase manquante.</strong> Sur Vercel : ajoute{' '}
+          <code className="rounded bg-amber-100/80 px-1">VITE_SUPABASE_URL</code> et{' '}
+          <code className="rounded bg-amber-100/80 px-1">VITE_SUPABASE_ANON_KEY</code>, puis{' '}
+          <strong>Redeploy</strong> le projet.
+        </div>
+      )}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
       <footer className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-400">
         Takap.Soccer — foot amateur entre joueurs

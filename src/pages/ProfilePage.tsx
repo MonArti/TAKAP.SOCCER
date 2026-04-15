@@ -7,7 +7,7 @@ import { Button } from '@/components/Button'
 import { parseNoteMoyenne } from '@/lib/format'
 
 export function ProfilePage() {
-  const { user } = useAuth()
+  const { user, refreshAdminRole, isAdmin } = useAuth()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [pseudo, setPseudo] = useState('')
   const [age, setAge] = useState('')
@@ -86,6 +86,26 @@ export function ProfilePage() {
             <div>
               <dt className="text-zinc-500">Matchs joués</dt>
               <dd className="text-lg font-bold text-zinc-900">{profile.nb_matchs}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-zinc-500">Rôle (base de données)</dt>
+              <dd className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-800">
+                <span>{profile.role ?? '—'}</span>
+                {isAdmin && (
+                  <span className="rounded bg-brand-100 px-2 py-0.5 text-xs text-brand-800">menu Admin actif</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void refreshAdminRole()}
+                  className="text-xs font-semibold text-brand-700 underline hover:text-brand-900"
+                >
+                  Recharger le rôle
+                </button>
+              </dd>
+              <p className="mt-1 text-xs text-zinc-400">
+                Si tu viens de passer <code className="rounded bg-zinc-100 px-1">admin</code> en SQL, clique sur
+                « Recharger le rôle » ou déconnecte-toi puis reconnecte-toi.
+              </p>
             </div>
           </dl>
           <p className="mt-3 text-xs text-zinc-400">

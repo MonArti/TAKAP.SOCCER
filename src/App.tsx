@@ -9,6 +9,7 @@ import { CreateMatchPage } from '@/pages/CreateMatchPage'
 import { MatchDetailPage } from '@/pages/MatchDetailPage'
 import { MyMatchesPage } from '@/pages/MyMatchesPage'
 import { PublicProfilePage } from '@/pages/PublicProfilePage'
+import { AdminDashboardPage } from '@/pages/AdminDashboardPage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -53,6 +54,14 @@ export default function App() {
           element={
             <Protected>
               <MyMatchesPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <Protected>
+              <AdminDashboardPage />
             </Protected>
           }
         />

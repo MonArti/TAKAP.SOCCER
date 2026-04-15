@@ -17,6 +17,7 @@ create table public.profiles (
   poids integer,
   note_moyenne numeric(3,2) not null default 0,
   nb_matchs integer not null default 0,
+  role text not null default 'user' check (role in ('user', 'admin')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint profiles_pseudo_len check (char_length(trim(pseudo)) >= 1)
@@ -188,6 +189,30 @@ drop trigger if exists trg_profiles_updated on public.profiles;
 create trigger trg_profiles_updated
   before update on public.profiles
   for each row execute function public.set_updated_at();
+
+-- Seul un admin peut modifier la colonne role (évite l’auto-promotion via API)
+create or replace function public.profiles_lock_role_unless_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.role is distinct from old.role and auth.uid() is not null then
+    if not exists (
+      select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin'
+    ) then
+      new.role := old.role;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_profiles_role on public.profiles;
+create trigger trg_profiles_role
+  before update on public.profiles
+  for each row execute function public.profiles_lock_role_unless_admin();
 
 -- Helpers RLS (SECURITY DEFINER) : évitent la récursion matchs ↔ participations
 create or replace function public.match_select_allowed_for_user(p_match_id uuid, p_user uuid)
@@ -390,6 +415,22 @@ $$;
 
 grant execute on function public.create_match(date, time, text, numeric, integer) to authenticated;
 
+-- Admin : lecture globale (dashboard) — SECURITY DEFINER pour éviter récursion RLS
+create or replace function public.auth_is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select p.role = 'admin' from public.profiles p where p.id = auth.uid()),
+    false
+  );
+$$;
+
+grant execute on function public.auth_is_admin() to anon, authenticated;
+
 -- RLS
 alter table public.profiles enable row level security;
 alter table public.matchs enable row level security;
@@ -441,6 +482,11 @@ create policy "matchs_update_organisateur"
   using (organisateur_id = auth.uid())
   with check (organisateur_id = auth.uid());
 
+create policy "matchs_select_admin"
+  on public.matchs for select
+  to authenticated
+  using (public.auth_is_admin());
+
 -- Participations
 create policy "participations_select_visible"
   on public.participations for select
@@ -454,6 +500,11 @@ create policy "participations_insert_self_open"
     and not public.match_organizer_is(match_id, auth.uid())
     and public.match_accepting_participants(match_id)
   );
+
+create policy "participations_select_admin"
+  on public.participations for select
+  to authenticated
+  using (public.auth_is_admin());
 
 -- Notes : lecture si participant du match ou organisateur
 create policy "notes_select_participant"
@@ -476,6 +527,11 @@ create policy "notes_delete_own"
   on public.notes for delete
   to authenticated
   using (donneur_id = auth.uid());
+
+create policy "notes_select_admin"
+  on public.notes for select
+  to authenticated
+  using (public.auth_is_admin());
 
 -- Realtime (optionnel — exécuter seulement si la publication existe et les tables n’y sont pas déjà)
 -- alter publication supabase_realtime add table public.matchs;
