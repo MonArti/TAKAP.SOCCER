@@ -23,6 +23,8 @@ export type MatchRow = {
   date_match: string
   heure_match: string
   lieu: string
+  lieu_lat: number | null
+  lieu_lng: number | null
   prix: number
   nb_max: number
   statut: MatchStatut
@@ -73,6 +75,8 @@ export type Database = {
           date_match: string
           heure_match: string
           lieu: string
+          lieu_lat?: number | null
+          lieu_lng?: number | null
           prix?: number
           nb_max?: number
           statut?: MatchStatut
@@ -116,6 +120,8 @@ export type Database = {
           p_lieu: string
           p_prix: number
           p_nb_max: number
+          p_lieu_lat?: number | null
+          p_lieu_lng?: number | null
         }
         Returns: string
       }

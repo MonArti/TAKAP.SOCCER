@@ -30,6 +30,8 @@ create table public.matchs (
   date_match date not null,
   heure_match time not null,
   lieu text not null,
+  lieu_lat double precision,
+  lieu_lng double precision,
   prix numeric(10,2) not null default 0,
   nb_max integer not null default 10,
   statut match_statut not null default 'ouvert',
@@ -375,7 +377,9 @@ create or replace function public.create_match(
   p_heure_match time,
   p_lieu text,
   p_prix numeric,
-  p_nb_max integer
+  p_nb_max integer,
+  p_lieu_lat double precision default null,
+  p_lieu_lng double precision default null
 )
 returns uuid
 language plpgsql
@@ -397,6 +401,8 @@ begin
     date_match,
     heure_match,
     lieu,
+    lieu_lat,
+    lieu_lng,
     prix,
     nb_max
   )
@@ -405,6 +411,8 @@ begin
     p_date_match,
     p_heure_match,
     btrim(p_lieu),
+    p_lieu_lat,
+    p_lieu_lng,
     p_prix,
     p_nb_max
   )
@@ -413,7 +421,7 @@ begin
 end;
 $$;
 
-grant execute on function public.create_match(date, time, text, numeric, integer) to authenticated;
+grant execute on function public.create_match(date, time, text, numeric, integer, double precision, double precision) to authenticated;
 
 -- Profil public : notes récentes reçues (agrégé) + moyennes communauté (+ stats du visiteur si connecté)
 create or replace function public.get_public_profile_extras(p_profile_id uuid)

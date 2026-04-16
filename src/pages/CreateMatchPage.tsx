@@ -1,20 +1,93 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { getGoogleMapsApiKey, loadGoogleMapsScript } from '@/lib/google-maps'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
+
+function buildLieuLine(name: string, address: string) {
+  const n = name.trim()
+  const a = address.trim()
+  if (n && a) return `${n} — ${a}`
+  return n || a
+}
 
 export function CreateMatchPage() {
   const { user } = useAuth()
   const nav = useNavigate()
+  const lieuInputRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+
   const [dateMatch, setDateMatch] = useState('')
   const [heureMatch, setHeureMatch] = useState('20:00')
   const [lieu, setLieu] = useState('')
+  const [lieuNom, setLieuNom] = useState('')
+  const [lieuAdresse, setLieuAdresse] = useState('')
+  const [lieuLat, setLieuLat] = useState<number | null>(null)
+  const [lieuLng, setLieuLng] = useState<number | null>(null)
   const [prix, setPrix] = useState('5')
   const [nbMax, setNbMax] = useState('10')
   const [err, setErr] = useState<string | null>(null)
+  const [mapsHint, setMapsHint] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    const input = lieuInputRef.current
+    if (!input || !getGoogleMapsApiKey()) {
+      if (!getGoogleMapsApiKey()) {
+        setMapsHint(
+          'Sans VITE_GOOGLE_MAPS_API_KEY, saisis le lieu à la main (pas d’autocomplétion ni de GPS enregistré).',
+        )
+      }
+      return
+    }
+
+    let cancelled = false
+
+    void loadGoogleMapsScript()
+      .then(() => {
+        if (cancelled || !lieuInputRef.current) return
+        if (autocompleteRef.current) return
+
+        const ac = new google.maps.places.Autocomplete(lieuInputRef.current, {
+          fields: ['formatted_address', 'geometry', 'name'],
+          types: ['establishment', 'geocode'],
+        })
+        autocompleteRef.current = ac
+
+        ac.addListener('place_changed', () => {
+          const place = ac.getPlace()
+          const loc = place.geometry?.location
+          if (!loc) return
+
+          const name = place.name?.trim() ?? ''
+          const address = place.formatted_address?.trim() ?? ''
+          const lat = loc.lat()
+          const lng = loc.lng()
+
+          setLieuNom(name)
+          setLieuAdresse(address)
+          setLieuLat(lat)
+          setLieuLng(lng)
+          setLieu(buildLieuLine(name, address))
+        })
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMapsHint('Google Maps n’a pas pu être chargé. Vérifie la clé et les domaines autorisés.')
+        }
+      })
+
+    return () => {
+      cancelled = true
+      const ac = autocompleteRef.current
+      if (ac && typeof google !== 'undefined' && google.maps?.event) {
+        google.maps.event.clearInstanceListeners(ac)
+      }
+      autocompleteRef.current = null
+    }
+  }, [])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,6 +110,8 @@ export function CreateMatchPage() {
       p_lieu: lieu.trim(),
       p_prix: px,
       p_nb_max: nb,
+      p_lieu_lat: lieuLat,
+      p_lieu_lng: lieuLng,
     })
     setPending(false)
     if (error) {
@@ -85,17 +160,51 @@ export function CreateMatchPage() {
           </div>
           <div>
             <label htmlFor="lieu" className="block text-sm font-medium text-zinc-700">
-              Lieu (adresse)
+              Lieu (recherche Google Places)
             </label>
             <input
+              ref={lieuInputRef}
               id="lieu"
               type="text"
               required
-              placeholder="Stade municipal, rue…"
+              placeholder="Tape un nom de salle, une ville…"
               value={lieu}
-              onChange={(e) => setLieu(e.target.value)}
+              onChange={(e) => {
+                setLieu(e.target.value)
+                setLieuNom('')
+                setLieuAdresse('')
+                setLieuLat(null)
+                setLieuLng(null)
+              }}
+              autoComplete="off"
               className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
             />
+            <p className="mt-1 text-xs text-zinc-500">
+              Choisis une <strong>suggestion</strong> dans la liste pour enregistrer latitude / longitude
+              (utile pour les notifications géolocalisées plus tard).
+            </p>
+            {(lieuNom || lieuAdresse || lieuLat != null) && (
+              <dl className="mt-2 rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                {lieuNom && (
+                  <div className="flex gap-2">
+                    <dt className="shrink-0 font-medium text-zinc-500">Nom</dt>
+                    <dd>{lieuNom}</dd>
+                  </div>
+                )}
+                {lieuAdresse && (
+                  <div className="mt-1 flex gap-2">
+                    <dt className="shrink-0 font-medium text-zinc-500">Adresse</dt>
+                    <dd>{lieuAdresse}</dd>
+                  </div>
+                )}
+                {lieuLat != null && lieuLng != null && (
+                  <div className="mt-1 font-mono text-zinc-700">
+                    GPS : {lieuLat.toFixed(6)}, {lieuLng.toFixed(6)}
+                  </div>
+                )}
+              </dl>
+            )}
+            {mapsHint && <p className="mt-2 text-xs text-amber-800">{mapsHint}</p>}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

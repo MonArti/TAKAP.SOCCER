@@ -1,5 +1,8 @@
--- RPC create_match avec GPS (lieu_lat / lieu_lng) — remplace l’ancienne version 5 args.
--- Sur une base neuve : utiliser schema.sql. Sur base existante : voir aussi fix_matchs_lieu_gps.sql
+-- GPS du lieu + RPC create_match étendue (bases déjà créées sans ces colonnes)
+-- Exécuter une fois dans Supabase → SQL Editor.
+
+alter table public.matchs add column if not exists lieu_lat double precision;
+alter table public.matchs add column if not exists lieu_lng double precision;
 
 drop function if exists public.create_match(date, time, text, numeric, integer);
 
