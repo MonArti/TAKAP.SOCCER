@@ -16,7 +16,7 @@ export function StarRatingInput({ value, onChange, disabled }: Props) {
             disabled={disabled}
             onClick={() => onChange(n)}
             className={`rounded-md p-1 text-2xl leading-none transition ${
-              active ? 'text-amber-400' : 'text-zinc-300 hover:text-amber-200'
+              active ? 'text-amber-500' : 'text-muted-foreground/40 hover:text-amber-300'
             } ${disabled ? 'opacity-40' : ''}`}
             aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
           >

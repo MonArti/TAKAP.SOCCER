@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { Card } from '@/components/Card'
+import { Button } from '@/components/Button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import {
   niveauIndicatifFromNote,
   normalizeSearch,
@@ -178,65 +183,66 @@ export function JoueursExplorePage() {
   const nDemo = includeDemo ? getLaunchDemo().joueurs.length : 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Joueurs</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          Recherche, filtres et comparaison. Les profils <strong>Exemple</strong> viennent du même jeu de
-          données que sur l’accueil — pour tester sans remplir la base.
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Joueurs</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Recherche, filtres et comparaison. Les profils <strong className="text-foreground">Exemple</strong>{' '}
+          viennent du même jeu de données que sur l’accueil.
         </p>
       </div>
 
       {community.avgNote != null && (
-        <Card className="border-zinc-100 bg-zinc-50/80 text-sm text-zinc-700">
+        <Card className="border-border bg-muted/40 text-sm text-muted-foreground shadow-none">
           <p>
-            <strong className="text-zinc-900">Moyennes communauté (réel)</strong> — joueurs avec au moins 1
+            <strong className="text-foreground">Moyennes communauté (réel)</strong> — joueurs avec au moins 1
             match terminé : note ~{community.avgNote.toFixed(2)}/5 · {community.avgNb} matchs en moyenne.
           </p>
         </Card>
       )}
 
-      {loading && <p className="text-zinc-500">Chargement…</p>}
+      {loading && <p className="text-sm font-medium text-muted-foreground">Chargement…</p>}
       {err && (
-        <Card className="border-red-200 bg-red-50 text-sm text-red-800">{err}</Card>
+        <Card className="border-destructive/30 bg-destructive/5 text-sm text-destructive">{err}</Card>
       )}
 
       {!loading && !err && (
         <>
-          <Card className="space-y-4 border-brand-100 bg-gradient-to-b from-brand-50/30 to-white">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-800">
+          <Card className="space-y-4 border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card shadow-md ring-primary/10">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
                 checked={includeDemo}
                 onChange={(e) => setIncludeDemo(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+                className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
               />
-              Inclure les profils d’exemple Takap (même rendu qu’un vrai profil)
+              Inclure les profils d’exemple Takap
             </label>
+            <Separator />
 
-            <div>
-              <label htmlFor="joueurs-q" className="sr-only">
+            <div className="space-y-2">
+              <Label htmlFor="joueurs-q" className="sr-only">
                 Rechercher un joueur
-              </label>
-              <input
+              </Label>
+              <Input
                 id="joueurs-q"
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Rechercher : pseudo, prénom (exemple), ville…"
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                placeholder="Pseudo, prénom (exemple), ville…"
+                className="h-11"
               />
             </div>
 
-            <div>
-              <label htmlFor="j-ville" className="block text-xs font-medium text-zinc-500">
-                Ville (filtre sur les exemples ; les vrais profils n’ont pas encore de ville en base)
-              </label>
+            <div className="space-y-2">
+              <Label htmlFor="j-ville" className="text-xs text-muted-foreground">
+                Ville (exemples ; pas encore en base pour les réels)
+              </Label>
               <select
                 id="j-ville"
                 value={ville}
                 onChange={(e) => setVille(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <option value="">Toutes</option>
                 {villesDemo.map((v) => (
@@ -248,11 +254,11 @@ export function JoueursExplorePage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div>
-                <label htmlFor="j-note-min" className="block text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <Label htmlFor="j-note-min" className="text-xs text-muted-foreground">
                   Note min
-                </label>
-                <input
+                </Label>
+                <Input
                   id="j-note-min"
                   type="number"
                   inputMode="decimal"
@@ -262,14 +268,14 @@ export function JoueursExplorePage() {
                   value={noteMin}
                   onChange={(e) => setNoteMin(e.target.value)}
                   placeholder="ex. 3.5"
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label htmlFor="j-note-max" className="block text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <Label htmlFor="j-note-max" className="text-xs text-muted-foreground">
                   Note max
-                </label>
-                <input
+                </Label>
+                <Input
                   id="j-note-max"
                   type="number"
                   inputMode="decimal"
@@ -278,28 +284,28 @@ export function JoueursExplorePage() {
                   step={0.1}
                   value={noteMax}
                   onChange={(e) => setNoteMax(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label htmlFor="j-matchs-min" className="block text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <Label htmlFor="j-matchs-min" className="text-xs text-muted-foreground">
                   Matchs min.
-                </label>
-                <input
+                </Label>
+                <Input
                   id="j-matchs-min"
                   type="number"
                   inputMode="numeric"
                   min={0}
                   value={matchsMin}
                   onChange={(e) => setMatchsMin(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label htmlFor="j-age-min" className="block text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <Label htmlFor="j-age-min" className="text-xs text-muted-foreground">
                   Âge min (réels)
-                </label>
-                <input
+                </Label>
+                <Input
                   id="j-age-min"
                   type="number"
                   inputMode="numeric"
@@ -307,14 +313,14 @@ export function JoueursExplorePage() {
                   max={99}
                   value={ageMin}
                   onChange={(e) => setAgeMin(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label htmlFor="j-age-max" className="block text-xs font-medium text-zinc-500">
+              <div className="space-y-2">
+                <Label htmlFor="j-age-max" className="text-xs text-muted-foreground">
                   Âge max (réels)
-                </label>
-                <input
+                </Label>
+                <Input
                   id="j-age-max"
                   type="number"
                   inputMode="numeric"
@@ -322,20 +328,16 @@ export function JoueursExplorePage() {
                   max={99}
                   value={ageMax}
                   onChange={(e) => setAgeMax(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  className="h-10"
                 />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={resetFiltres}
-                className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
-              >
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="button" variant="secondary" onClick={resetFiltres} className="text-xs">
                 Réinitialiser
-              </button>
-              <span className="text-xs text-zinc-500">
+              </Button>
+              <span className="text-xs text-muted-foreground">
                 {filtered.length} résultat{filtered.length !== 1 ? 's' : ''} sur {rows.length} réel
                 {rows.length !== 1 ? 's' : ''}
                 {includeDemo ? ` + ${nDemo} exemple${nDemo > 1 ? 's' : ''}` : ''}
@@ -345,12 +347,12 @@ export function JoueursExplorePage() {
           </Card>
 
           {compareRows.length >= 2 && (
-            <Card className="border-brand-200 bg-brand-50/40">
-              <h2 className="text-base font-semibold text-zinc-900">Comparaison</h2>
+            <Card className="border-primary/20 bg-primary/5 shadow-md">
+              <h2 className="text-base font-semibold text-foreground">Comparaison</h2>
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[380px] text-left text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200 text-xs text-zinc-500">
+                    <tr className="border-b border-border text-xs text-muted-foreground">
                       <th className="pb-2 pr-2 font-medium">Joueur</th>
                       <th className="pb-2 pr-2 font-medium">Ville</th>
                       <th className="pb-2 pr-2 font-medium">Note</th>
@@ -365,11 +367,11 @@ export function JoueursExplorePage() {
                       if (r.kind === 'demo') {
                         const j = r.j
                         return (
-                          <tr key={rowKey(r)} className="border-b border-zinc-100 last:border-0">
+                          <tr key={rowKey(r)} className="border-b border-border/60 last:border-0">
                             <td className="py-2 pr-2 font-medium">
                               <Link
                                 to={`/demo/joueur/${j.id}`}
-                                className="text-brand-800 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 {j.prenom}
                               </Link>
@@ -382,27 +384,27 @@ export function JoueursExplorePage() {
                             <td className="py-2 pr-2 tabular-nums">{j.matchs}</td>
                             <td className="py-2 pr-2">—</td>
                             <td className="py-2 pr-2">—</td>
-                            <td className="py-2 text-zinc-600">{niveauIndicatifFromNote(j.note)}</td>
+                            <td className="py-2 text-muted-foreground">{niveauIndicatifFromNote(j.note)}</td>
                           </tr>
                         )
                       }
                       const p = r.profile
                       const note = parseNoteMoyenne(p.note_moyenne)
                       return (
-                        <tr key={rowKey(r)} className="border-b border-zinc-100 last:border-0">
+                        <tr key={rowKey(r)} className="border-b border-border/60 last:border-0">
                           <td className="py-2 pr-2 font-medium">
-                            <Link to={`/joueur/${p.id}`} className="text-brand-800 hover:underline">
+                            <Link to={`/joueur/${p.id}`} className="text-primary hover:underline">
                               {p.pseudo}
                             </Link>
                           </td>
-                          <td className="py-2 pr-2 text-zinc-400">—</td>
+                          <td className="py-2 pr-2 text-muted-foreground">—</td>
                           <td className="py-2 pr-2 tabular-nums">{note.toFixed(2)}</td>
                           <td className="py-2 pr-2 tabular-nums">{p.nb_matchs}</td>
                           <td className="py-2 pr-2">{p.age ?? '—'}</td>
                           <td className="py-2 pr-2">
                             {p.taille != null ? `${p.taille} cm` : '—'}
                           </td>
-                          <td className="py-2 text-zinc-600">{niveauIndicatifFromNote(note)}</td>
+                          <td className="py-2 text-muted-foreground">{niveauIndicatifFromNote(note)}</td>
                         </tr>
                       )
                     })}
@@ -412,7 +414,7 @@ export function JoueursExplorePage() {
               <button
                 type="button"
                 onClick={() => setCompareKeys([])}
-                className="mt-3 text-xs font-medium text-zinc-600 underline hover:text-zinc-900"
+                className="mt-3 text-xs font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
               >
                 Vider la sélection
               </button>
@@ -429,27 +431,30 @@ export function JoueursExplorePage() {
                 return (
                   <li
                     key={k}
-                    className={`flex flex-col gap-2 rounded-xl border bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                      selected ? 'border-brand-300 ring-1 ring-brand-200' : 'border-zinc-200'
+                    className={`flex flex-col gap-2 rounded-xl border bg-card px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between ${
+                      selected ? 'border-primary/40 ring-2 ring-primary/20' : 'border-border'
                     }`}
                   >
                     <Link to={`/demo/joueur/${j.id}`} className="min-w-0 flex-1">
-                      <span className="text-sm font-medium text-zinc-900">
+                      <span className="text-sm font-medium text-foreground">
                         {j.prenom}
-                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-amber-900">
+                        <Badge
+                          variant="secondary"
+                          className="ml-2 rounded-md bg-amber-100 text-[10px] font-bold uppercase text-amber-900"
+                        >
                           Exemple
-                        </span>
+                        </Badge>
                       </span>
-                      <span className="block text-xs text-zinc-500">
+                      <span className="block text-xs text-muted-foreground">
                         {j.ville} · {j.note.toFixed(1)}★ · {j.matchs} matchs (fictif)
                       </span>
                     </Link>
-                    <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-zinc-600">
+                    <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
                       <input
                         type="checkbox"
                         checked={selected}
                         onChange={() => toggleCompare(r)}
-                        className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+                        className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
                       />
                       Comparer
                     </label>
@@ -463,18 +468,18 @@ export function JoueursExplorePage() {
               return (
                 <li
                   key={k}
-                  className={`flex flex-col gap-2 rounded-xl border bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
-                    selected ? 'border-brand-300 ring-1 ring-brand-200' : 'border-zinc-200'
+                  className={`flex flex-col gap-2 rounded-xl border bg-card px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between ${
+                    selected ? 'border-primary/40 ring-2 ring-primary/20' : 'border-border'
                   }`}
                 >
                   <Link to={`/joueur/${p.id}`} className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-zinc-900">
+                    <span className="text-sm font-medium text-foreground">
                       {p.pseudo}
                       {isSelf && (
-                        <span className="ml-2 text-xs font-normal text-brand-700">(vous)</span>
+                        <span className="ml-2 text-xs font-normal text-primary">(vous)</span>
                       )}
                     </span>
-                    <span className="block text-xs text-zinc-500">
+                    <span className="block text-xs text-muted-foreground">
                       {note.toFixed(2)}★ · {p.nb_matchs} matchs
                       {p.age != null && ` · ${p.age} ans`}
                       {p.taille != null && ` · ${p.taille} cm`}
@@ -482,7 +487,7 @@ export function JoueursExplorePage() {
                   </Link>
                   <label
                     className={`flex shrink-0 items-center gap-2 text-xs font-medium ${
-                      isSelf ? 'cursor-not-allowed text-zinc-400' : 'cursor-pointer text-zinc-600'
+                      isSelf ? 'cursor-not-allowed text-muted-foreground/60' : 'cursor-pointer text-muted-foreground'
                     }`}
                   >
                     <input
@@ -490,7 +495,7 @@ export function JoueursExplorePage() {
                       checked={selected}
                       disabled={isSelf}
                       onChange={() => toggleCompare(r)}
-                      className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500 disabled:opacity-50"
+                      className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring disabled:opacity-50"
                     />
                     {isSelf ? '—' : 'Comparer'}
                   </label>
@@ -500,7 +505,7 @@ export function JoueursExplorePage() {
           </ul>
 
           {filtered.length === 0 && (
-            <p className="text-sm text-zinc-500">Aucun profil ne correspond à ces critères.</p>
+            <p className="text-sm text-muted-foreground">Aucun profil ne correspond à ces critères.</p>
           )}
         </>
       )}

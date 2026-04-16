@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase'
 import type { ProfileRow } from '@/types/database'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { parseNoteMoyenne } from '@/lib/format'
 
 export function ProfilePage() {
@@ -67,74 +70,76 @@ export function ProfilePage() {
     setMsg('Profil enregistré.')
   }
 
-  if (loading) return <p className="text-zinc-500">Chargement du profil…</p>
+  if (loading) return <p className="text-sm font-medium text-muted-foreground">Chargement du profil…</p>
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900">Mon profil</h1>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Mon profil</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Statistiques et informations visibles des autres joueurs.</p>
+      </div>
 
       {profile && (
-        <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">Statistiques</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <Card className="border-primary/15 bg-gradient-to-br from-primary/5 to-card shadow-md ring-primary/10">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Statistiques</h2>
+          <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <dt className="text-zinc-500">Note moyenne</dt>
-              <dd className="text-lg font-bold text-zinc-900">
+              <dt className="text-muted-foreground">Note moyenne</dt>
+              <dd className="text-xl font-bold text-foreground">
                 {parseNoteMoyenne(profile.note_moyenne).toFixed(2)} / 5
               </dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Matchs joués</dt>
-              <dd className="text-lg font-bold text-zinc-900">{profile.nb_matchs}</dd>
+              <dt className="text-muted-foreground">Matchs joués</dt>
+              <dd className="text-xl font-bold text-foreground">{profile.nb_matchs}</dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-zinc-500">Rôle (base de données)</dt>
-              <dd className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-800">
+              <dt className="text-muted-foreground">Rôle (base de données)</dt>
+              <dd className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
                 <span>{profile.role ?? '—'}</span>
                 {isAdmin && (
-                  <span className="rounded bg-brand-100 px-2 py-0.5 text-xs text-brand-800">menu Admin actif</span>
+                  <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    Admin
+                  </span>
                 )}
                 <button
                   type="button"
                   onClick={() => void refreshAdminRole()}
-                  className="text-xs font-semibold text-brand-700 underline hover:text-brand-900"
+                  className="text-xs font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
                 >
                   Recharger le rôle
                 </button>
               </dd>
-              <p className="mt-1 text-xs text-zinc-400">
-                Si tu viens de passer <code className="rounded bg-zinc-100 px-1">admin</code> en SQL, clique sur
-                « Recharger le rôle » ou déconnecte-toi puis reconnecte-toi.
+              <p className="mt-2 text-xs text-muted-foreground">
+                Si tu viens de passer <code className="rounded bg-muted px-1">admin</code> en SQL, clique ici ou
+                reconnecte-toi.
               </p>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-zinc-400">
+          <p className="mt-4 text-xs text-muted-foreground">
             Niveau : calcul automatique prévu plus tard (V1 : indisponible).
           </p>
         </Card>
       )}
 
-      <Card>
-        <form onSubmit={save} className="space-y-4">
-          <div>
-            <label htmlFor="pseudo" className="block text-sm font-medium text-zinc-700">
-              Pseudo
-            </label>
-            <input
+      <Card className="shadow-md ring-1 ring-border/80">
+        <form onSubmit={save} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="pseudo">Pseudo</Label>
+            <Input
               id="pseudo"
               required
               minLength={2}
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className="h-11"
             />
           </div>
+          <Separator />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <label htmlFor="age" className="block text-sm font-medium text-zinc-700">
-                Âge
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="age">Âge</Label>
+              <Input
                 id="age"
                 type="number"
                 inputMode="numeric"
@@ -143,14 +148,12 @@ export function ProfilePage() {
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="—"
-                className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+                className="h-11"
               />
             </div>
-            <div>
-              <label htmlFor="taille" className="block text-sm font-medium text-zinc-700">
-                Taille (cm)
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="taille">Taille (cm)</Label>
+              <Input
                 id="taille"
                 type="number"
                 inputMode="numeric"
@@ -159,14 +162,12 @@ export function ProfilePage() {
                 value={taille}
                 onChange={(e) => setTaille(e.target.value)}
                 placeholder="—"
-                className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+                className="h-11"
               />
             </div>
-            <div>
-              <label htmlFor="poids" className="block text-sm font-medium text-zinc-700">
-                Poids (kg)
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="poids">Poids (kg)</Label>
+              <Input
                 id="poids"
                 type="number"
                 inputMode="numeric"
@@ -175,12 +176,12 @@ export function ProfilePage() {
                 value={poids}
                 onChange={(e) => setPoids(e.target.value)}
                 placeholder="—"
-                className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+                className="h-11"
               />
             </div>
           </div>
-          {err && <p className="text-sm text-red-600">{err}</p>}
-          {msg && <p className="text-sm text-brand-800">{msg}</p>}
+          {err && <p className="text-sm font-medium text-destructive">{err}</p>}
+          {msg && <p className="text-sm font-medium text-primary">{msg}</p>}
           <Button type="submit" disabled={saving}>
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </Button>

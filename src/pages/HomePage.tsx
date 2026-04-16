@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { MatchRow, ProfileRow } from '@/types/database'
 import { Card } from '@/components/Card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { euros, formatDateFr, formatHeure, formatHeureAffichage, normalizeSearch } from '@/lib/format'
 import {
   getDemoMatchsOuverts,
@@ -155,55 +159,60 @@ export function HomePage() {
   const realCount = useMemo(() => filtered.filter((i) => i.kind === 'real').length, [filtered])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-zinc-900">Matchs ouverts</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Réserve ta place — paiement simulé pour la V1. La zone <strong>Recherche & filtres</strong> est
-          juste en dessous (connecté ou non). Coche « exemples Takap » pour tester sans base remplie.
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Matchs ouverts</h1>
+          <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 text-primary">
+            Live
+          </Badge>
+        </div>
+        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Réserve ta place — paiement simulé pour la V1. Filtre par lieu ou organisateur ; coche « exemples
+          Takap » pour tester sans base remplie.
         </p>
-        <p className="mt-2 text-[11px] text-zinc-400">
-          Si tu ne vois pas ce bloc après déploiement : vide le cache du navigateur ou ouvre en navigation
-          privée.
+        <p className="text-[11px] text-muted-foreground/80">
+          Si ce bloc n’apparaît pas après déploiement : vide le cache ou ouvre en navigation privée.
         </p>
       </div>
 
-      <Card className="space-y-4 border-brand-100 bg-gradient-to-b from-brand-50/40 to-white">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Recherche & filtres</h2>
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-zinc-700">
+      <Card className="space-y-4 border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card shadow-md ring-1 ring-primary/10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-foreground">Recherche & filtres</h2>
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
             <input
               type="checkbox"
               checked={showDemo}
               onChange={(e) => setShowDemo(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+              className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
             />
-            Afficher les exemples Takap (données fictives comme du réel)
+            Exemples Takap
           </label>
         </div>
-        <div>
-          <label htmlFor="home-q" className="sr-only">
+        <Separator />
+        <div className="space-y-2">
+          <Label htmlFor="home-q" className="sr-only">
             Rechercher un match
-          </label>
-          <input
+          </Label>
+          <Input
             id="home-q"
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher : lieu, organisateur…"
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            placeholder="Lieu, organisateur…"
+            className="h-11 border-border bg-background text-base md:text-sm"
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="home-ville" className="block text-xs font-medium text-zinc-500">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="home-ville" className="text-xs text-muted-foreground">
               Ville (lieu du match)
-            </label>
+            </Label>
             <select
               id="home-ville"
               value={ville}
               onChange={(e) => setVille(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               <option value="">Toutes les villes</option>
               {villesOptions.filter(Boolean).map((v) => (
@@ -212,8 +221,8 @@ export function HomePage() {
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-zinc-400">
-              Pour les vrais matchs, on cherche la ville dans le texte du lieu.
+            <p className="text-xs text-muted-foreground">
+              Pour les vrais matchs, la ville est détectée dans le texte du lieu.
             </p>
           </div>
           <div className="flex items-end">
@@ -223,14 +232,14 @@ export function HomePage() {
                 setQ('')
                 setVille('')
               }}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 sm:w-auto"
+              className="h-11 w-full rounded-lg border border-border bg-muted/50 px-4 text-sm font-medium text-foreground transition hover:bg-muted sm:w-auto"
             >
-              Réinitialiser recherche
+              Réinitialiser
             </button>
           </div>
         </div>
         {!loading && (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
             {showDemo && demoCount > 0 && ` · dont ${demoCount} exemple${demoCount > 1 ? 's' : ''}`}
             {realCount > 0 && ` · ${realCount} réel${realCount > 1 ? 's' : ''}`}
@@ -238,20 +247,24 @@ export function HomePage() {
         )}
       </Card>
 
-      {loading && <p className="text-zinc-500">Chargement…</p>}
+      {loading && (
+        <p className="text-sm font-medium text-muted-foreground">Chargement des matchs…</p>
+      )}
       {remoteWarn && (
-        <Card className="border-amber-200 bg-amber-50 text-sm text-amber-950">{remoteWarn}</Card>
+        <Card className="border-amber-200/80 bg-amber-50 text-sm text-amber-950 shadow-none">
+          {remoteWarn}
+        </Card>
       )}
 
       {!loading && filtered.length === 0 && (
-        <Card>
-          <p className="text-zinc-600">Aucun match ne correspond à ces critères.</p>
-          <p className="mt-2 text-sm text-zinc-500">
-            Élargis la recherche ou réactive les exemples Takap pour tester l’app sans base remplie.
+        <Card className="border-dashed border-muted-foreground/25">
+          <p className="text-foreground">Aucun match ne correspond à ces critères.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Élargis la recherche ou réactive les exemples Takap.
           </p>
           <Link
             to="/matchs/nouveau"
-            className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline"
+            className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
           >
             Créer un vrai match →
           </Link>
@@ -265,23 +278,24 @@ export function HomePage() {
             const places = Math.max(0, m.nb_max - m.nb_inscrits)
             return (
               <li key={`real-${m.id}`}>
-                <Link to={`/matchs/${m.id}`}>
-                  <Card className="transition hover:border-brand-200 hover:shadow-md">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-semibold text-zinc-900">
+                <Link to={`/matchs/${m.id}`} className="block">
+                  <Card className="transition hover:border-primary/30 hover:shadow-md">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-semibold text-foreground">
                           {formatDateFr(m.date_match)} · {formatHeure(m.heure_match)}
                         </p>
-                        <p className="mt-0.5 text-sm text-zinc-600">{m.lieu}</p>
-                        <p className="mt-1 text-xs text-zinc-400">
-                          Par <span className="font-medium text-zinc-600">{m.organisateur_pseudo}</span>
+                        <p className="text-sm text-muted-foreground">{m.lieu}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Par{' '}
+                          <span className="font-medium text-foreground/90">{m.organisateur_pseudo}</span>
                         </p>
                       </div>
-                      <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
-                        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-800">
+                      <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                        <Badge className="rounded-full bg-primary/15 font-semibold text-primary hover:bg-primary/20">
                           {places} place{places > 1 ? 's' : ''} restante{places > 1 ? 's' : ''}
-                        </span>
-                        <span className="text-sm font-medium text-zinc-700">
+                        </Badge>
+                        <span className="text-sm font-semibold text-foreground">
                           {euros(Number(m.prix))} / joueur
                         </span>
                       </div>
@@ -296,26 +310,32 @@ export function HomePage() {
           const places = Math.max(0, m.nb_max - m.nb_inscrits)
           return (
             <li key={`demo-${m.id}`}>
-              <Link to={`/demo/ouvert/${m.id}`}>
-                <Card className="relative transition hover:border-amber-200 hover:shadow-md">
-                  <span className="absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+              <Link to={`/demo/ouvert/${m.id}`} className="block">
+                <Card className="relative transition hover:border-amber-300/60 hover:shadow-md">
+                  <Badge
+                    variant="secondary"
+                    className="absolute right-4 top-4 rounded-full bg-amber-100 text-[10px] font-bold uppercase tracking-wide text-amber-900"
+                  >
                     Exemple
-                  </span>
-                  <div className="flex flex-col gap-2 pr-16 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-zinc-900">
+                  </Badge>
+                  <div className="flex flex-col gap-3 pr-20 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-1">
+                      <p className="font-semibold text-foreground">
                         {formatDateFr(m.date)} · {formatHeureAffichage(m.heure)}
                       </p>
-                      <p className="mt-0.5 text-sm text-zinc-600">{m.lieuLabel}</p>
-                      <p className="mt-1 text-xs text-zinc-400">
-                        Par <span className="font-medium text-zinc-600">{m.orgPrenom}</span> (fictif)
+                      <p className="text-sm text-muted-foreground">{m.lieuLabel}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Par <span className="font-medium text-foreground/90">{m.orgPrenom}</span> (fictif)
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
-                      <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                    <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full bg-amber-100 font-semibold text-amber-900"
+                      >
                         {places} place{places > 1 ? 's' : ''} restante{places > 1 ? 's' : ''}
-                      </span>
-                      <span className="text-sm font-medium text-zinc-700">
+                      </Badge>
+                      <span className="text-sm font-semibold text-foreground">
                         {euros(Number(m.prix))} / joueur
                       </span>
                     </div>
@@ -327,12 +347,13 @@ export function HomePage() {
         })}
       </ul>
 
-      <div className="flex flex-wrap justify-center gap-4 border-t border-zinc-100 pt-4 text-center text-xs text-zinc-500">
-        <Link to="/demo" className="font-semibold text-brand-700 hover:underline">
-          Explorer démo (historique, scores, filtres joueurs)
+      <Separator />
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-xs text-muted-foreground">
+        <Link to="/demo" className="font-semibold text-primary hover:underline">
+          Explorer la démo
         </Link>
-        <Link to="/joueurs" className="font-semibold text-brand-700 hover:underline">
-          Annuaire joueurs (connecté)
+        <Link to="/joueurs" className="font-semibold text-primary hover:underline">
+          Annuaire joueurs
         </Link>
       </div>
     </div>

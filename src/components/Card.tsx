@@ -1,3 +1,6 @@
+import { Card as UICard } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+
 export function Card({
   children,
   className = '',
@@ -6,10 +9,8 @@ export function Card({
   className?: string
 }) {
   return (
-    <div
-      className={`rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5 ${className}`}
-    >
+    <UICard className={cn('gap-0 px-4 py-4 shadow-sm ring-border/60 sm:px-5 sm:py-5', className)}>
       {children}
-    </div>
+    </UICard>
   )
 }
