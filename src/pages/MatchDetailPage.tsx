@@ -39,6 +39,8 @@ export function MatchDetailPage() {
   const [showStatsEditor, setShowStatsEditor] = useState(false)
   const [statsMsg, setStatsMsg] = useState<string | null>(null)
   const [statsErr, setStatsErr] = useState<string | null>(null)
+  /** Brouillon des notes (enregistré dans la table `notes` au clic sur « Valider les notes »). */
+  const [draftNotes, setDraftNotes] = useState<Record<string, number>>({})
 
   const load = useCallback(async () => {
     if (!id) return
@@ -102,38 +104,11 @@ export function MatchDetailPage() {
     void load()
   }, [load])
 
-  const nbInscrits = parts.length
-  const places = match ? Math.max(0, match.nb_max - nbInscrits) : 0
-  const imIn = user ? parts.some((p) => p.joueur_id === user.id) : false
-  const isOrg = user && match && user.id === match.organisateur_id
-  const canReserve =
-    user &&
-    match &&
-    match.statut === 'ouvert' &&
-    !imIn &&
-    !isOrg &&
-    places > 0
-
-  const canComplete =
-    isOrg &&
-    match &&
-    match.statut === 'ouvert' &&
-    isMatchDayPassedOrToday(match.date_match)
-
-  const canInvite = Boolean(
-    user && match && match.statut === 'ouvert' && (isOrg || imIn),
-  )
-  /** Afficher la carte d’aide / formulaire dès que le match est ouvert (même si l’utilisateur ne peut pas encore inviter). */
-  const showInviteCard = Boolean(match && match.statut === 'ouvert')
-
   const excludedFromInvite = useMemo(() => {
     const s = new Set(parts.map((p) => p.joueur_id))
     if (user) s.add(user.id)
     return s
   }, [parts, user])
-
-  /** Brouillon des notes (enregistré dans la table `notes` au clic sur « Valider les notes »). */
-  const [draftNotes, setDraftNotes] = useState<Record<string, number>>({})
 
   useEffect(() => {
     const fromServer: Record<string, number> = {}
@@ -161,6 +136,49 @@ export function MatchDetailPage() {
       return next
     })
   }, [parts, matchStatsRows])
+
+  const others = useMemo(
+    () => (user ? parts.filter((p) => p.joueur_id !== user.id) : parts),
+    [user, parts],
+  )
+
+  const matchStatsDisplayRows = useMemo(() => {
+    const statsByJoueur = new Map(matchStatsRows.map((s) => [s.joueur_id, s]))
+    return parts
+      .map((p) => {
+        const st = statsByJoueur.get(p.joueur_id)
+        return st ? { part: p, st } : null
+      })
+      .filter((x): x is { part: Part; st: StatsMatchJoueurRow } => x != null)
+  }, [parts, matchStatsRows])
+
+  const nbInscrits = parts.length
+  const places = match ? Math.max(0, match.nb_max - nbInscrits) : 0
+  const imIn = user ? parts.some((p) => p.joueur_id === user.id) : false
+  const isOrg = user && match && user.id === match.organisateur_id
+  const canReserve =
+    user &&
+    match &&
+    match.statut === 'ouvert' &&
+    !imIn &&
+    !isOrg &&
+    places > 0
+
+  const canComplete =
+    isOrg &&
+    match &&
+    match.statut === 'ouvert' &&
+    isMatchDayPassedOrToday(match.date_match)
+
+  const canInvite = Boolean(
+    user && match && match.statut === 'ouvert' && (isOrg || imIn),
+  )
+  /** Afficher la carte d’aide / formulaire dès que le match est ouvert (même si l’utilisateur ne peut pas encore inviter). */
+  const showInviteCard = Boolean(match && match.statut === 'ouvert')
+
+  const showMatchStatsReadonly = Boolean(
+    match && match.statut === 'termine' && imIn && matchStatsDisplayRows.length > 0,
+  )
 
   async function reserve() {
     if (!user || !id || !match) return
@@ -327,21 +345,6 @@ export function MatchDetailPage() {
       </Card>
     )
   }
-
-  const others = user ? parts.filter((p) => p.joueur_id !== user.id) : parts
-
-  const matchStatsDisplayRows = useMemo(() => {
-    const statsByJoueur = new Map(matchStatsRows.map((s) => [s.joueur_id, s]))
-    return parts
-      .map((p) => {
-        const st = statsByJoueur.get(p.joueur_id)
-        return st ? { part: p, st } : null
-      })
-      .filter((x): x is { part: Part; st: StatsMatchJoueurRow } => x != null)
-  }, [parts, matchStatsRows])
-
-  const showMatchStatsReadonly =
-    Boolean(match && match.statut === 'termine' && imIn && matchStatsDisplayRows.length > 0)
 
   return (
     <div className="space-y-8">
