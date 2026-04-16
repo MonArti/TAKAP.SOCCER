@@ -122,7 +122,13 @@ export function CreateMatchPage() {
       setErr('Réponse vide du serveur.')
       return
     }
-    nav(`/matchs/${matchId}`)
+    const id = String(matchId)
+    nav(`/matchs/${id}`)
+    void supabase.functions
+      .invoke('notify-match-nearby', { body: { match_id: id } })
+      .then(({ error: fnErr }) => {
+        if (fnErr) console.warn('[Takap] notify-match-nearby:', fnErr.message)
+      })
   }
 
   return (

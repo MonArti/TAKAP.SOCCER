@@ -1,0 +1,4 @@
+# Projet Supabase local / CLI — déploiement des fonctions : supabase functions deploy notify-match-nearby
+
+[functions.notify-match-nearby]
+verify_jwt = true

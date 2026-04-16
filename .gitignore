@@ -1,5 +1,8 @@
 node_modules
 dist
+# Supabase CLI (lien local, refs machine)
+supabase/.temp/
+
 .env
 .env.local
 *.local

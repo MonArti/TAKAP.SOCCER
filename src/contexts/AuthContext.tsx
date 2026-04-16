@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { initOneSignal, syncOneSignalUser } from '@/lib/onesignal'
 
 type AuthContextValue = {
   user: User | null
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [adminResolved, setAdminResolved] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [oneSignalReady, setOneSignalReady] = useState(false)
   const sessionRef = useRef<Session | null>(null)
   sessionRef.current = session
 
@@ -127,6 +129,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applySession, fetchRoleForUser])
 
+  useEffect(() => {
+    void initOneSignal()
+      .then(() => setOneSignalReady(true))
+      .catch(() => setOneSignalReady(true))
+  }, [])
+
+  useEffect(() => {
+    if (!oneSignalReady) return
+    syncOneSignalUser(session?.user?.id ?? null)
+  }, [oneSignalReady, session?.user?.id])
+
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error ? new Error(error.message) : null }
@@ -145,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    syncOneSignalUser(null)
     await supabase.auth.signOut()
   }, [])
 
