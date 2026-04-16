@@ -35,13 +35,16 @@ export function RegisterPage() {
     setTimeout(() => nav('/login'), 4000)
   }
 
+  const field =
+    'mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40'
+
   return (
     <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900">Inscription</h1>
-      <Card>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Inscription</h1>
+      <Card className="border-primary/15 ring-1 ring-primary/10">
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="pseudo" className="block text-sm font-medium text-zinc-700">
+            <label htmlFor="pseudo" className="block text-sm font-medium text-muted-foreground">
               Pseudo
             </label>
             <input
@@ -51,11 +54,11 @@ export function RegisterPage() {
               minLength={2}
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className={field}
             />
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
+            <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">
               Email
             </label>
             <input
@@ -65,11 +68,11 @@ export function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className={field}
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
+            <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
               Mot de passe
             </label>
             <input
@@ -80,19 +83,19 @@ export function RegisterPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className={field}
             />
-            <p className="mt-1 text-xs text-zinc-400">Minimum 6 caractères (règle Supabase par défaut).</p>
+            <p className="mt-1 text-xs text-muted-foreground">Minimum 6 caractères (règle Supabase par défaut).</p>
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {info && <p className="text-sm text-brand-800">{info}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {info && <p className="text-sm text-primary">{info}</p>}
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? 'Création…' : 'Créer mon compte'}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-zinc-500">
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Déjà inscrit ?{' '}
-          <Link to="/login" className="font-semibold text-brand-700 hover:underline">
+          <Link to="/login" className="font-semibold text-primary hover:underline">
             Connexion
           </Link>
         </p>

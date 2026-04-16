@@ -48,6 +48,17 @@ export type NoteRow = {
   created_at: string
 }
 
+export type NotificationType = 'match_created' | 'new_rating' | 'rank_changed'
+
+export type NotificationRow = {
+  id: string
+  user_id: string
+  type: NotificationType
+  content: string
+  read: boolean
+  created_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -108,6 +119,19 @@ export type Database = {
           created_at?: string
         }
         Update: Partial<Omit<NoteRow, 'id'>>
+        Relationships: []
+      }
+      notifications: {
+        Row: NotificationRow
+        Insert: {
+          id?: string
+          user_id: string
+          type: NotificationType
+          content: string
+          read?: boolean
+          created_at?: string
+        }
+        Update: Partial<Pick<NotificationRow, 'read'>>
         Relationships: []
       }
     }

@@ -25,13 +25,16 @@ export function LoginPage() {
     nav('/', { replace: true })
   }
 
+  const field =
+    'mt-1 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40'
+
   return (
     <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900">Connexion</h1>
-      <Card>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Connexion</h1>
+      <Card className="border-primary/15 ring-1 ring-primary/10">
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-zinc-700">
+            <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">
               Email
             </label>
             <input
@@ -41,11 +44,11 @@ export function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className={field}
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-700">
+            <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
               Mot de passe
             </label>
             <input
@@ -55,17 +58,17 @@ export function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none ring-brand-600 focus:ring-2"
+              className={field}
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={pending}>
             {pending ? 'Connexion…' : 'Se connecter'}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-zinc-500">
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Pas encore de compte ?{' '}
-          <Link to="/register" className="font-semibold text-brand-700 hover:underline">
+          <Link to="/register" className="font-semibold text-primary hover:underline">
             Inscription
           </Link>
         </p>

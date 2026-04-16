@@ -52,7 +52,7 @@ export function IosPushHintBanner() {
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto flex max-w-lg gap-3 rounded-t-2xl border border-zinc-600/40 bg-zinc-900/92 px-4 py-3 text-sm leading-snug text-zinc-100 shadow-lg backdrop-blur-sm">
+      <div className="pointer-events-auto flex max-w-lg gap-3 rounded-t-2xl border border-primary/35 bg-card/95 px-4 py-3 text-sm leading-snug text-foreground shadow-[0_-8px_32px_-8px_rgba(0,230,118,0.15)] backdrop-blur-sm">
         <p className="min-w-0 flex-1">
           📱 Pour recevoir les notifications, ajoute Takap Soccer à ton écran d’accueil : Partager →
           Sur l’écran d’accueil
@@ -60,7 +60,7 @@ export function IosPushHintBanner() {
         <button
           type="button"
           onClick={dismiss}
-          className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-brand-200 underline decoration-brand-400/60 underline-offset-2 hover:bg-white/10 hover:text-white"
+          className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-primary underline decoration-primary/50 underline-offset-2 hover:bg-primary/10"
         >
           Fermer
         </button>

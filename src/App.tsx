@@ -20,7 +20,7 @@ function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center text-zinc-500">
+      <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
         Chargement…
       </div>
     )

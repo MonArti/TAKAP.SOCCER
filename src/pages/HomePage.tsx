@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { MatchRow, ProfileRow } from '@/types/database'
+import { MatchCard, type MatchCardStatus } from '@/components/MatchCard'
 import { Card } from '@/components/Card'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { euros, formatDateFr, formatHeure, formatHeureAffichage, normalizeSearch } from '@/lib/format'
+import { formatDateFr, formatHeure, formatHeureAffichage, normalizeSearch } from '@/lib/format'
 import {
   getDemoMatchsOuverts,
   getDemoVillesJoueurs,
@@ -50,6 +53,34 @@ function passesHomeFilters(
     }
   }
   return true
+}
+
+function isMatchDateToday(dateIso: string) {
+  const today = new Date()
+  const d = new Date(dateIso + 'T12:00:00')
+  return (
+    today.getFullYear() === d.getFullYear() &&
+    today.getMonth() === d.getMonth() &&
+    today.getDate() === d.getDate()
+  )
+}
+
+function matchCardStatus(nbInscrits: number, nbMax: number, dateIso: string): MatchCardStatus {
+  if (nbInscrits >= nbMax) return 'complet'
+  if (isMatchDateToday(dateIso)) return 'aujourdhui'
+  return 'ouvert'
+}
+
+function lieuVenueAndPin(lieu: string) {
+  const comma = lieu.split(',').map((s) => s.trim())
+  if (comma.length >= 2) {
+    return { venue: comma[0] ?? lieu, pin: comma[comma.length - 1] ?? lieu }
+  }
+  const em = lieu.split(/\s—\s/)
+  if (em.length >= 2) {
+    return { venue: em[0] ?? lieu, pin: em[em.length - 1] ?? lieu }
+  }
+  return { venue: lieu, pin: lieu }
 }
 
 export function HomePage() {
@@ -162,34 +193,37 @@ export function HomePage() {
     <div className="space-y-8">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Matchs ouverts</h1>
-          <Badge variant="secondary" className="rounded-full border border-primary/20 bg-primary/10 text-primary">
+          <h1 className="text-3xl font-black tracking-tight text-[#E8F0E9]">Matchs disponibles</h1>
+          <Badge
+            variant="secondary"
+            className="rounded-full border border-[rgba(0,230,118,0.35)] bg-[rgba(0,230,118,0.12)] text-[11px] font-bold uppercase tracking-wide text-[#00E676]"
+          >
             Live
           </Badge>
         </div>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Réserve ta place — paiement simulé pour la V1. Filtre par lieu ou organisateur ; coche « exemples
-          Takap » pour tester sans base remplie.
+        <p className="max-w-2xl text-sm leading-relaxed text-[#7A9180]">
+          Réserve ta place — filtre par lieu ou texte ; active « Exemples Takap » pour tester sans base
+          remplie.
         </p>
-        <p className="text-[11px] text-muted-foreground/80">
+        <p className="text-[11px] text-[#7A9180]/90">
           Si ce bloc n’apparaît pas après déploiement : vide le cache ou ouvre en navigation privée.
         </p>
       </div>
 
-      <Card className="space-y-4 border-primary/15 bg-gradient-to-br from-primary/5 via-card to-card shadow-md ring-1 ring-primary/10">
+      <Card className="space-y-4 border-[rgba(0,230,118,0.12)] bg-[#1A211B] shadow-[0_16px_48px_-32px_rgba(0,0,0,0.9)] ring-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-foreground">Recherche & filtres</h2>
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
+          <h2 className="text-base font-bold text-[#E8F0E9]">Recherche & filtres</h2>
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#7A9180]">
             <input
               type="checkbox"
               checked={showDemo}
               onChange={(e) => setShowDemo(e.target.checked)}
-              className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+              className="size-4 rounded border-[rgba(0,230,118,0.25)] bg-[#0A0E0B] text-[#00E676] focus:ring-2 focus:ring-[#00E676]/40"
             />
             Exemples Takap
           </label>
         </div>
-        <Separator />
+        <Separator className="bg-[rgba(0,230,118,0.1)]" />
         <div className="space-y-2">
           <Label htmlFor="home-q" className="sr-only">
             Rechercher un match
@@ -200,19 +234,19 @@ export function HomePage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Lieu, organisateur…"
-            className="h-11 border-border bg-background text-base md:text-sm"
+            className="h-11 border-[rgba(0,230,118,0.15)] bg-[#0A0E0B] text-base text-[#E8F0E9] placeholder:text-[#7A9180]/70 md:text-sm"
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="home-ville" className="text-xs text-muted-foreground">
+            <Label htmlFor="home-ville" className="text-xs text-[#7A9180]">
               Ville (lieu du match)
             </Label>
             <select
               id="home-ville"
               value={ville}
               onChange={(e) => setVille(e.target.value)}
-              className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className="flex h-11 w-full rounded-lg border border-[rgba(0,230,118,0.15)] bg-[#0A0E0B] px-3 text-sm text-[#E8F0E9] shadow-sm outline-none focus-visible:border-[#00E676] focus-visible:ring-2 focus-visible:ring-[#00E676]/35"
             >
               <option value="">Toutes les villes</option>
               {villesOptions.filter(Boolean).map((v) => (
@@ -221,25 +255,36 @@ export function HomePage() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-[#7A9180]">
               Pour les vrais matchs, la ville est détectée dans le texte du lieu.
             </p>
           </div>
-          <div className="flex items-end">
-            <button
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
+              className="h-11 w-full border-[rgba(0,230,118,0.25)] bg-transparent text-[#E8F0E9] hover:bg-[rgba(0,230,118,0.08)] sm:w-auto"
               onClick={() => {
                 setQ('')
                 setVille('')
               }}
-              className="h-11 w-full rounded-lg border border-border bg-muted/50 px-4 text-sm font-medium text-foreground transition hover:bg-muted sm:w-auto"
             >
               Réinitialiser
-            </button>
+            </Button>
+            <Link
+              to="/matchs/nouveau"
+              className={cn(
+                buttonVariants({ variant: 'default', size: 'lg' }),
+                'h-11 w-full justify-center bg-[#00E676] font-bold text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] hover:brightness-110 sm:w-auto',
+              )}
+            >
+              Créer un match
+            </Link>
           </div>
         </div>
         {!loading && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-[#7A9180]">
             {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
             {showDemo && demoCount > 0 && ` · dont ${demoCount} exemple${demoCount > 1 ? 's' : ''}`}
             {realCount > 0 && ` · ${realCount} réel${realCount > 1 ? 's' : ''}`}
@@ -247,112 +292,83 @@ export function HomePage() {
         )}
       </Card>
 
-      {loading && (
-        <p className="text-sm font-medium text-muted-foreground">Chargement des matchs…</p>
-      )}
+      {loading && <p className="text-sm font-medium text-[#7A9180]">Chargement des matchs…</p>}
       {remoteWarn && (
-        <Card className="border-amber-200/80 bg-amber-50 text-sm text-amber-950 shadow-none">
+        <Card className="border border-amber-500/35 bg-amber-500/10 text-sm text-amber-100 shadow-none">
           {remoteWarn}
         </Card>
       )}
 
       {!loading && filtered.length === 0 && (
-        <Card className="border-dashed border-muted-foreground/25">
-          <p className="text-foreground">Aucun match ne correspond à ces critères.</p>
-          <p className="mt-2 text-sm text-muted-foreground">
+        <Card className="border border-dashed border-[rgba(0,230,118,0.2)] bg-[#1A211B]">
+          <p className="text-[#E8F0E9]">Aucun match ne correspond à ces critères.</p>
+          <p className="mt-2 text-sm text-[#7A9180]">
             Élargis la recherche ou réactive les exemples Takap.
           </p>
           <Link
             to="/matchs/nouveau"
-            className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
+            className={cn(
+              buttonVariants({ variant: 'default', size: 'lg' }),
+              'mt-4 inline-flex h-11 justify-center bg-[#00E676] font-bold text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] hover:brightness-110',
+            )}
           >
             Créer un vrai match →
           </Link>
         </Card>
       )}
 
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {filtered.map((item) => {
           if (item.kind === 'real') {
             const m = item.m
-            const places = Math.max(0, m.nb_max - m.nb_inscrits)
+            const { venue, pin } = lieuVenueAndPin(m.lieu)
+            const status = matchCardStatus(m.nb_inscrits, m.nb_max, m.date_match)
             return (
               <li key={`real-${m.id}`}>
-                <Link to={`/matchs/${m.id}`} className="block">
-                  <Card className="transition hover:border-primary/30 hover:shadow-md">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 space-y-1">
-                        <p className="font-semibold text-foreground">
-                          {formatDateFr(m.date_match)} · {formatHeure(m.heure_match)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{m.lieu}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Par{' '}
-                          <span className="font-medium text-foreground/90">{m.organisateur_pseudo}</span>
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                        <Badge className="rounded-full bg-primary/15 font-semibold text-primary hover:bg-primary/20">
-                          {places} place{places > 1 ? 's' : ''} restante{places > 1 ? 's' : ''}
-                        </Badge>
-                        <span className="text-sm font-semibold text-foreground">
-                          {euros(Number(m.prix))} / joueur
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
+                <MatchCard
+                  to={`/matchs/${m.id}`}
+                  variant="real"
+                  nbMax={m.nb_max}
+                  venueTitle={venue}
+                  lieuPin={pin}
+                  organizerDisplay={m.organisateur_pseudo}
+                  nbInscrits={m.nb_inscrits}
+                  prix={Number(m.prix)}
+                  dateLine={`${formatDateFr(m.date_match)} · ${formatHeure(m.heure_match)}`}
+                  status={status}
+                />
               </li>
             )
           }
 
           const m = item.m
-          const places = Math.max(0, m.nb_max - m.nb_inscrits)
+          const demoVenue = m.lieuLabel.split('—')[0]?.trim() ?? m.lieuLabel
+          const status = matchCardStatus(m.nb_inscrits, m.nb_max, m.date)
           return (
             <li key={`demo-${m.id}`}>
-              <Link to={`/demo/ouvert/${m.id}`} className="block">
-                <Card className="relative transition hover:border-amber-300/60 hover:shadow-md">
-                  <Badge
-                    variant="secondary"
-                    className="absolute right-4 top-4 rounded-full bg-amber-100 text-[10px] font-bold uppercase tracking-wide text-amber-900"
-                  >
-                    Exemple
-                  </Badge>
-                  <div className="flex flex-col gap-3 pr-20 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 space-y-1">
-                      <p className="font-semibold text-foreground">
-                        {formatDateFr(m.date)} · {formatHeureAffichage(m.heure)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{m.lieuLabel}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Par <span className="font-medium text-foreground/90">{m.orgPrenom}</span> (fictif)
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full bg-amber-100 font-semibold text-amber-900"
-                      >
-                        {places} place{places > 1 ? 's' : ''} restante{places > 1 ? 's' : ''}
-                      </Badge>
-                      <span className="text-sm font-semibold text-foreground">
-                        {euros(Number(m.prix))} / joueur
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
+              <MatchCard
+                to={`/demo/ouvert/${m.id}`}
+                variant="demo"
+                nbMax={m.nb_max}
+                venueTitle={demoVenue}
+                lieuPin={m.lieuVille}
+                organizerDisplay={m.orgPrenom}
+                nbInscrits={m.nb_inscrits}
+                prix={Number(m.prix)}
+                dateLine={`${formatDateFr(m.date)} · ${formatHeureAffichage(m.heure)}`}
+                status={status}
+              />
             </li>
           )
         })}
       </ul>
 
-      <Separator />
-      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-xs text-muted-foreground">
-        <Link to="/demo" className="font-semibold text-primary hover:underline">
+      <Separator className="bg-[rgba(0,230,118,0.1)]" />
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-xs text-[#7A9180]">
+        <Link to="/demo" className="font-bold text-[#00E676] transition hover:underline">
           Explorer la démo
         </Link>
-        <Link to="/joueurs" className="font-semibold text-primary hover:underline">
+        <Link to="/joueurs" className="font-bold text-[#00E676] transition hover:underline">
           Annuaire joueurs
         </Link>
       </div>
