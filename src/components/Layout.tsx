@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { IosPushHintBanner } from '@/components/IosPushHintBanner'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -83,6 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
+      <IosPushHintBanner />
       <footer className="border-t border-zinc-200 py-4 text-center text-xs text-zinc-400">
         <p>Takap.Soccer — foot amateur entre joueurs</p>
         <p className="mt-1 text-[10px] text-zinc-500">

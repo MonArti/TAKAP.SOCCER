@@ -13,6 +13,36 @@ export async function initOneSignal(): Promise<void> {
   const appId = getOneSignalAppId()
   if (!appId || initDone) return
 
+  const w = window as Window & {
+    OneSignalDeferred?: Array<(OneSignal: OneSignalLike) => void>
+  }
+  w.OneSignalDeferred = w.OneSignalDeferred || []
+
+  // v16 : enregistrer le callback *avant* de charger le script (sinon la file peut être traitée vide).
+  const initPromise = new Promise<void>((resolve, reject) => {
+    w.OneSignalDeferred!.push(async (OneSignal) => {
+      try {
+        await OneSignal.init({
+          appId,
+          allowLocalhostAsSecureOrigin: Boolean(import.meta.env.DEV),
+        })
+        await OneSignal.Notifications.requestPermission()
+        try {
+          await OneSignal.Location?.setShared?.(true)
+        } catch {
+          // navigateur ou SDK sans partage localisation
+        }
+        initDone = true
+        if (import.meta.env.DEV) {
+          ;(w as unknown as { __TAKAP_ONESIGNAL_READY__?: boolean }).__TAKAP_ONESIGNAL_READY__ = true
+        }
+        resolve()
+      } catch (e) {
+        reject(e)
+      }
+    })
+  })
+
   try {
     await loadExternalScript(SCRIPT_SRC, 'script-onesignal-sdk')
   } catch {
@@ -20,32 +50,8 @@ export async function initOneSignal(): Promise<void> {
     return
   }
 
-  const w = window as Window & {
-    OneSignalDeferred?: Array<(OneSignal: OneSignalLike) => void>
-  }
-  w.OneSignalDeferred = w.OneSignalDeferred || []
-
   try {
-    await new Promise<void>((resolve, reject) => {
-      w.OneSignalDeferred!.push(async (OneSignal) => {
-        try {
-          await OneSignal.init({
-            appId,
-            allowLocalhostAsSecureOrigin: Boolean(import.meta.env.DEV),
-          })
-          await OneSignal.Notifications.requestPermission()
-          try {
-            await OneSignal.Location?.setShared?.(true)
-          } catch {
-            // navigateur ou SDK sans partage localisation
-          }
-          initDone = true
-          resolve()
-        } catch (e) {
-          reject(e)
-        }
-      })
-    })
+    await initPromise
   } catch (e) {
     console.warn('[Takap] OneSignal init:', e)
   }
