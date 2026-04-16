@@ -6,6 +6,8 @@ import type { MatchRow, NoteRow, ParticipationRow, ProfileRow } from '@/types/da
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { StarRatingInput } from '@/components/StarRatingInput'
 import { euros, formatDateFr, formatHeure, isMatchDayPassedOrToday } from '@/lib/format'
@@ -23,6 +25,11 @@ export function MatchDetailPage() {
   const [msg, setMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [actionPending, setActionPending] = useState(false)
+  const [inviteQuery, setInviteQuery] = useState('')
+  const [inviteHits, setInviteHits] = useState<Pick<ProfileRow, 'id' | 'pseudo'>[]>([])
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null)
+  const [inviteErr, setInviteErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -97,6 +104,18 @@ export function MatchDetailPage() {
     match.statut === 'ouvert' &&
     isMatchDayPassedOrToday(match.date_match)
 
+  const canInvite = Boolean(
+    user && match && match.statut === 'ouvert' && (isOrg || imIn),
+  )
+  /** Afficher la carte d’aide / formulaire dès que le match est ouvert (même si l’utilisateur ne peut pas encore inviter). */
+  const showInviteCard = Boolean(match && match.statut === 'ouvert')
+
+  const excludedFromInvite = useMemo(() => {
+    const s = new Set(parts.map((p) => p.joueur_id))
+    if (user) s.add(user.id)
+    return s
+  }, [parts, user])
+
   const notesByReceiver = useMemo(() => {
     const m = new Map<string, number>()
     for (const n of myNotes) m.set(n.receveur_id, n.note)
@@ -120,6 +139,56 @@ export function MatchDetailPage() {
     }
     setMsg('Place réservée (paiement simulé : non requis en V1).')
     void load()
+  }
+
+  async function searchInvitePlayers() {
+    if (!user || inviteQuery.trim().length < 2) {
+      setInviteHits([])
+      return
+    }
+    setInviteBusy(true)
+    setInviteMsg(null)
+    setInviteErr(null)
+    const q = inviteQuery.trim()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, pseudo')
+      .ilike('pseudo', `%${q}%`)
+      .limit(12)
+    setInviteBusy(false)
+    if (error) {
+      setInviteErr(error.message)
+      setInviteHits([])
+      return
+    }
+    const list = ((data ?? []) as Pick<ProfileRow, 'id' | 'pseudo'>[]).filter(
+      (p) => !excludedFromInvite.has(p.id),
+    )
+    setInviteHits(list)
+  }
+
+  async function sendInvitation(inviteId: string) {
+    if (!user || !id || !match) return
+    setInviteMsg(null)
+    setInviteErr(null)
+    setInviteBusy(true)
+    const { error } = await supabase.from('invitations').insert({
+      match_id: id,
+      inviteur_id: user.id,
+      invite_id: inviteId,
+    })
+    setInviteBusy(false)
+    if (error) {
+      if (error.message.includes('duplicate') || error.code === '23505') {
+        setInviteErr('Une invitation existe déjà pour ce joueur et ce match.')
+      } else {
+        setInviteErr(error.message)
+      }
+      return
+    }
+    setInviteMsg('Invitation envoyée : le joueur reçoit une notification avec un rappel — il doit cliquer sur « Rejoindre » pour s’inscrire (aucune place réservée).')
+    setInviteHits([])
+    setInviteQuery('')
   }
 
   async function completeMatch() {
@@ -221,7 +290,7 @@ export function MatchDetailPage() {
         {canReserve && (
           <div className="mt-4 space-y-2">
             <Button onClick={() => void reserve()} disabled={actionPending}>
-              Réserver ma place
+              Rejoindre
             </Button>
             <p className="text-xs text-muted-foreground">Simulation : aucun paiement en ligne.</p>
           </div>
@@ -242,6 +311,82 @@ export function MatchDetailPage() {
           </p>
         )}
       </Card>
+
+      {showInviteCard && (
+        <Card className="shadow-md ring-1 ring-border/80 ring-primary/15">
+          <h2 className="text-lg font-semibold text-foreground">Inviter un joueur</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Envoie une invitation : le joueur reçoit une notification. Il doit ouvrir ce match et cliquer sur
+            « Rejoindre » pour s’inscrire — aucune place n’est réservée.
+          </p>
+
+          {!user && (
+            <p className="mt-4 text-sm text-muted-foreground">
+              <Link to="/login" className="font-semibold text-primary hover:underline">
+                Connecte-toi
+              </Link>{' '}
+              pour inviter quelqu’un (réservé à l’organisateur ou aux joueurs déjà inscrits).
+            </p>
+          )}
+
+          {user && !canInvite && (
+            <p className="mt-4 rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              Seuls <strong className="text-foreground">l’organisateur</strong> du match et les joueurs{' '}
+              <strong className="text-foreground">déjà inscrits</strong> peuvent envoyer une invitation. Tu
+              n’es pas dans ce cas pour l’instant — inscris-toi avec « Rejoindre » ou crée ton propre match.
+            </p>
+          )}
+
+          {canInvite && (
+            <>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Label htmlFor="invite-pseudo">Pseudo (recherche)</Label>
+                  <Input
+                    id="invite-pseudo"
+                    value={inviteQuery}
+                    onChange={(e) => setInviteQuery(e.target.value)}
+                    placeholder="Au moins 2 caractères"
+                    className="max-w-md"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void searchInvitePlayers()
+                    }}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={inviteBusy}
+                  onClick={() => void searchInvitePlayers()}
+                >
+                  Rechercher
+                </Button>
+              </div>
+              {inviteErr && <p className="mt-3 text-sm font-medium text-destructive">{inviteErr}</p>}
+              {inviteMsg && <p className="mt-3 text-sm font-medium text-primary">{inviteMsg}</p>}
+              {inviteHits.length > 0 && (
+                <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
+                  {inviteHits.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <Link to={`/joueur/${p.id}`} className="font-semibold text-primary hover:underline">
+                        {p.pseudo}
+                      </Link>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={inviteBusy}
+                        onClick={() => void sendInvitation(p.id)}
+                      >
+                        Inviter
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Card>
+      )}
 
       <Card className="shadow-md ring-1 ring-border/80">
         <h2 className="text-lg font-semibold text-foreground">Participants ({nbInscrits})</h2>

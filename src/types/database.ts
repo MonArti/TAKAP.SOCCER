@@ -48,7 +48,22 @@ export type NoteRow = {
   created_at: string
 }
 
-export type NotificationType = 'match_created' | 'new_rating' | 'rank_changed'
+export type NotificationType =
+  | 'match_created'
+  | 'new_rating'
+  | 'rank_changed'
+  | 'match_invite'
+
+export type InvitationStatut = 'en_attente' | 'acceptee' | 'refusee' | 'ignoree'
+
+export type InvitationRow = {
+  id: string
+  match_id: string
+  inviteur_id: string
+  invite_id: string
+  statut: InvitationStatut
+  cree_le: string
+}
 
 export type NotificationRow = {
   id: string
@@ -132,6 +147,19 @@ export type Database = {
           created_at?: string
         }
         Update: Partial<Pick<NotificationRow, 'read'>>
+        Relationships: []
+      }
+      invitations: {
+        Row: InvitationRow
+        Insert: {
+          id?: string
+          match_id: string
+          inviteur_id: string
+          invite_id: string
+          statut?: InvitationStatut
+          cree_le?: string
+        }
+        Update: Partial<Pick<InvitationRow, 'statut'>>
         Relationships: []
       }
     }

@@ -4,7 +4,7 @@
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
-  type text not null check (type in ('match_created', 'new_rating', 'rank_changed')),
+  type text not null check (type in ('match_created', 'new_rating', 'rank_changed', 'match_invite')),
   content text not null,
   read boolean not null default false,
   created_at timestamptz not null default now()

@@ -15,6 +15,8 @@ function humanLine(n: NotificationRow): string {
       return 'Tu as reçu une nouvelle note.'
     case 'rank_changed':
       return 'Ton classement a changé.'
+    case 'match_invite':
+      return 'Tu as été invité à un match. Ouvre le match et clique sur « Rejoindre ».'
     default:
       return 'Nouvelle activité.'
   }

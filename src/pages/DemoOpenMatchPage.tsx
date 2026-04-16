@@ -71,7 +71,8 @@ export function DemoOpenMatchPage() {
           </div>
         </div>
         <p className="mt-6 text-sm text-zinc-500">
-          Pour réserver une vraie place, utilise un match créé par la communauté depuis l’accueil.
+          Pour réserver une vraie place ou utiliser les invitations, ouvre un match réel (lien{' '}
+          <code className="rounded bg-zinc-100 px-1">/matchs/…</code> depuis l’accueil, pas un exemple).
         </p>
       </Card>
     </div>
