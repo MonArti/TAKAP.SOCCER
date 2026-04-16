@@ -6,6 +6,7 @@ drop policy if exists "profiles_select_anon_open_matchs" on public.profiles;
 drop policy if exists "matchs_select_public_open" on public.matchs;
 drop policy if exists "participations_select_visible" on public.participations;
 drop policy if exists "participations_insert_self_open" on public.participations;
+drop policy if exists "participations_insert_organizer_self" on public.participations;
 drop policy if exists "notes_select_participant" on public.notes;
 drop policy if exists "notes_insert_rules" on public.notes;
 
@@ -189,6 +190,14 @@ create policy "participations_insert_self_open"
     joueur_id = auth.uid()
     and not public.match_organizer_is(match_id, auth.uid())
     and public.match_accepting_participants(match_id)
+  );
+
+create policy "participations_insert_organizer_self"
+  on public.participations for insert
+  to authenticated
+  with check (
+    joueur_id = auth.uid()
+    and public.match_organizer_is(match_id, auth.uid())
   );
 
 create policy "notes_select_participant"

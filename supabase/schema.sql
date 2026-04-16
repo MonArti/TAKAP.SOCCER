@@ -576,6 +576,15 @@ create policy "participations_insert_self_open"
     and public.match_accepting_participants(match_id)
   );
 
+-- Organisateur : s’inscrire comme participant (création du match côté app)
+create policy "participations_insert_organizer_self"
+  on public.participations for insert
+  to authenticated
+  with check (
+    joueur_id = auth.uid()
+    and public.match_organizer_is(match_id, auth.uid())
+  );
+
 create policy "participations_select_admin"
   on public.participations for select
   to authenticated

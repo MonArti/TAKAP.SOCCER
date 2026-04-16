@@ -116,10 +116,13 @@ export function MatchDetailPage() {
     return s
   }, [parts, user])
 
-  const notesByReceiver = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const n of myNotes) m.set(n.receveur_id, n.note)
-    return m
+  /** Brouillon des notes (enregistré dans la table `notes` au clic sur « Valider les notes »). */
+  const [draftNotes, setDraftNotes] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    const fromServer: Record<string, number> = {}
+    for (const n of myNotes) fromServer[n.receveur_id] = n.note
+    setDraftNotes(fromServer)
   }, [myNotes])
 
   async function reserve() {
@@ -206,22 +209,39 @@ export function MatchDetailPage() {
     void load()
   }
 
-  async function saveNote(receveurId: string, note: number) {
+  async function submitNotes() {
     if (!user || !id || !match || match.statut !== 'termine') return
     setErr(null)
-    const { error } = await supabase.from('notes').upsert(
-      {
-        match_id: id,
-        donneur_id: user.id,
-        receveur_id: receveurId,
-        note,
-      },
-      { onConflict: 'match_id,donneur_id,receveur_id' },
-    )
+    setMsg(null)
+    setActionPending(true)
+    const rows = others
+      .map((p) => {
+        const note = draftNotes[p.joueur_id]
+        if (note == null || note < 1 || note > 5) return null
+        return {
+          match_id: id,
+          donneur_id: user.id,
+          receveur_id: p.joueur_id,
+          note,
+        }
+      })
+      .filter((r): r is NonNullable<typeof r> => r != null)
+
+    if (rows.length === 0) {
+      setErr('Sélectionne au moins une note (1 à 5 étoiles) pour un joueur.')
+      setActionPending(false)
+      return
+    }
+
+    const { error } = await supabase.from('notes').upsert(rows, {
+      onConflict: 'match_id,donneur_id,receveur_id',
+    })
+    setActionPending(false)
     if (error) {
       setErr(error.message)
       return
     }
+    setMsg('Notes enregistrées !')
     const { data: notes } = await supabase
       .from('notes')
       .select('*')
@@ -426,7 +446,8 @@ export function MatchDetailPage() {
         <Card className="shadow-md ring-1 ring-border/80">
           <h2 className="text-lg font-semibold text-foreground">Noter les joueurs</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Une seule note par joueur. Tu ne peux pas te noter toi-même.
+            Choisis une note par joueur, puis clique sur « Valider les notes » pour enregistrer en base (table{' '}
+            <code className="rounded bg-muted px-1 text-xs">notes</code>). Tu ne peux pas te noter toi-même.
           </p>
           <ul className="mt-4 space-y-4">
             {others.map((p) => (
@@ -438,12 +459,28 @@ export function MatchDetailPage() {
                   {p.profile.pseudo}
                 </Link>
                 <StarRatingInput
-                  value={notesByReceiver.get(p.joueur_id) ?? null}
-                  onChange={(n) => void saveNote(p.joueur_id, n)}
+                  value={draftNotes[p.joueur_id] ?? null}
+                  onChange={(n) =>
+                    setDraftNotes((prev) => ({
+                      ...prev,
+                      [p.joueur_id]: n,
+                    }))
+                  }
+                  disabled={actionPending}
                 />
               </li>
             ))}
           </ul>
+          {err && <p className="mt-4 text-sm font-medium text-destructive">{err}</p>}
+          {msg && <p className="mt-2 text-sm font-medium text-primary">{msg}</p>}
+          <div className="mt-6 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              Les notes déjà enregistrées sont rechargées depuis le serveur après validation.
+            </p>
+            <Button type="button" disabled={actionPending} onClick={() => void submitNotes()}>
+              {actionPending ? 'Enregistrement…' : 'Valider les notes'}
+            </Button>
+          </div>
         </Card>
       )}
 

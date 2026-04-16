@@ -116,16 +116,38 @@ export function CreateMatchPage() {
       p_lieu_lat: lieuLat,
       p_lieu_lng: lieuLng,
     })
-    setPending(false)
     if (error) {
+      setPending(false)
       setErr(error.message)
       return
     }
     if (!matchId) {
+      setPending(false)
       setErr('Réponse vide du serveur.')
       return
     }
     const id = String(matchId)
+
+    const { error: partErr } = await supabase.from('participations').insert({
+      match_id: id,
+      joueur_id: user.id,
+      a_paye: false,
+    })
+    if (partErr && partErr.code !== '23505' && !partErr.message.toLowerCase().includes('duplicate')) {
+      setPending(false)
+      setErr(
+        `Match créé mais inscription organisateur impossible : ${partErr.message}. Exécute supabase/organisateur_auto_participation.sql sur ton projet.`,
+      )
+      nav(`/matchs/${id}`)
+      void supabase.functions
+        .invoke('notify-match-nearby', { body: { match_id: id } })
+        .then(({ error: fnErr }) => {
+          if (fnErr) console.warn('[Takap] notify-match-nearby:', fnErr.message)
+        })
+      return
+    }
+
+    setPending(false)
     nav(`/matchs/${id}`)
     void supabase.functions
       .invoke('notify-match-nearby', { body: { match_id: id } })
