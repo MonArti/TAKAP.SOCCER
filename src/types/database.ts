@@ -1,6 +1,10 @@
+import type { MatchNiveau } from '@/lib/match-niveau'
+
 export type MatchStatut = 'ouvert' | 'termine'
 
 export type ProfileRole = 'user' | 'admin'
+
+export type { MatchNiveau }
 
 export type ProfileRow = {
   id: string
@@ -30,7 +34,27 @@ export type MatchRow = {
   prix: number
   nb_max: number
   statut: MatchStatut
+  /** Absent avant migration SQL `niveau_chat_stats.sql` — traiter comme `amateur`. */
+  niveau?: MatchNiveau
   created_at: string
+}
+
+export type MessageMatchRow = {
+  id: string
+  match_id: string
+  user_id: string
+  message: string
+  created_at: string
+}
+
+export type StatsMatchJoueurRow = {
+  id: string
+  match_id: string
+  joueur_id: string
+  buts: number
+  passes_decisives: number
+  cartons_jaunes: number
+  cartons_rouges: number
 }
 
 export type ParticipationRow = {
@@ -110,6 +134,7 @@ export type Database = {
           prix?: number
           nb_max?: number
           statut?: MatchStatut
+          niveau?: MatchNiveau
           created_at?: string
         }
         Update: Partial<Omit<MatchRow, 'id'>>
@@ -166,6 +191,32 @@ export type Database = {
         Update: Partial<Pick<InvitationRow, 'statut'>>
         Relationships: []
       }
+      messages_match: {
+        Row: MessageMatchRow
+        Insert: {
+          id?: string
+          match_id: string
+          user_id: string
+          message: string
+          created_at?: string
+        }
+        Update: Partial<Omit<MessageMatchRow, 'id'>>
+        Relationships: []
+      }
+      stats_match_joueur: {
+        Row: StatsMatchJoueurRow
+        Insert: {
+          id?: string
+          match_id: string
+          joueur_id: string
+          buts?: number
+          passes_decisives?: number
+          cartons_jaunes?: number
+          cartons_rouges?: number
+        }
+        Update: Partial<Omit<StatsMatchJoueurRow, 'id'>>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -178,6 +229,7 @@ export type Database = {
           p_nb_max: number
           p_lieu_lat?: number | null
           p_lieu_lng?: number | null
+          p_niveau?: string
         }
         Returns: string
       }

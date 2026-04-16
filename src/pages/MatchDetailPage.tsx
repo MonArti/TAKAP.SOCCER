@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import type { MatchRow, NoteRow, ParticipationRow, ProfileRow } from '@/types/database'
+import type { MatchRow, NoteRow, ParticipationRow, ProfileRow, StatsMatchJoueurRow } from '@/types/database'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 import { Badge } from '@/components/ui/badge'
@@ -11,8 +11,12 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { StarRatingInput } from '@/components/StarRatingInput'
 import { euros, formatDateFr, formatHeure, isMatchDayPassedOrToday } from '@/lib/format'
+import { matchNiveauLabel, type MatchNiveau } from '@/lib/match-niveau'
+import { ChatBox } from '@/components/ChatBox'
 
 type Part = ParticipationRow & { profile: Pick<ProfileRow, 'id' | 'pseudo'> }
+
+type StatsDraft = { buts: number; passes: number; jaunes: number; rouges: number }
 
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +34,11 @@ export function MatchDetailPage() {
   const [inviteBusy, setInviteBusy] = useState(false)
   const [inviteMsg, setInviteMsg] = useState<string | null>(null)
   const [inviteErr, setInviteErr] = useState<string | null>(null)
+  const [matchStatsRows, setMatchStatsRows] = useState<StatsMatchJoueurRow[]>([])
+  const [statsDraft, setStatsDraft] = useState<Record<string, StatsDraft>>({})
+  const [showStatsEditor, setShowStatsEditor] = useState(false)
+  const [statsMsg, setStatsMsg] = useState<string | null>(null)
+  const [statsErr, setStatsErr] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -78,6 +87,13 @@ export function MatchDetailPage() {
     } else {
       setMyNotes([])
     }
+
+    if (matchRow.statut === 'termine') {
+      const { data: st } = await supabase.from('stats_match_joueur').select('*').eq('match_id', id)
+      setMatchStatsRows((st ?? []) as StatsMatchJoueurRow[])
+    } else {
+      setMatchStatsRows([])
+    }
     setLoading(false)
   }, [id, user])
 
@@ -124,6 +140,27 @@ export function MatchDetailPage() {
     for (const n of myNotes) fromServer[n.receveur_id] = n.note
     setDraftNotes(fromServer)
   }, [myNotes])
+
+  useEffect(() => {
+    setStatsDraft((prev) => {
+      const next = { ...prev }
+      const byJ = new Map(matchStatsRows.map((s) => [s.joueur_id, s]))
+      for (const p of parts) {
+        const ex = byJ.get(p.joueur_id)
+        if (ex) {
+          next[p.joueur_id] = {
+            buts: ex.buts,
+            passes: ex.passes_decisives,
+            jaunes: ex.cartons_jaunes,
+            rouges: ex.cartons_rouges,
+          }
+        } else if (!next[p.joueur_id]) {
+          next[p.joueur_id] = { buts: 0, passes: 0, jaunes: 0, rouges: 0 }
+        }
+      }
+      return next
+    })
+  }, [parts, matchStatsRows])
 
   async function reserve() {
     if (!user || !id || !match) return
@@ -209,6 +246,35 @@ export function MatchDetailPage() {
     void load()
   }
 
+  async function submitStats() {
+    if (!user || !id || !match || match.statut !== 'termine' || user.id !== match.organisateur_id) return
+    setStatsErr(null)
+    setStatsMsg(null)
+    setActionPending(true)
+    const rows = parts.map((p) => {
+      const d = statsDraft[p.joueur_id] ?? { buts: 0, passes: 0, jaunes: 0, rouges: 0 }
+      return {
+        match_id: id,
+        joueur_id: p.joueur_id,
+        buts: Math.max(0, Math.min(99, Math.floor(Number(d.buts) || 0))),
+        passes_decisives: Math.max(0, Math.min(99, Math.floor(Number(d.passes) || 0))),
+        cartons_jaunes: Math.max(0, Math.min(10, Math.floor(Number(d.jaunes) || 0))),
+        cartons_rouges: Math.max(0, Math.min(5, Math.floor(Number(d.rouges) || 0))),
+      }
+    })
+    const { error } = await supabase.from('stats_match_joueur').upsert(rows, {
+      onConflict: 'match_id,joueur_id',
+    })
+    setActionPending(false)
+    if (error) {
+      setStatsErr(error.message)
+      return
+    }
+    setStatsMsg('Statistiques enregistrées.')
+    const { data: st } = await supabase.from('stats_match_joueur').select('*').eq('match_id', id)
+    setMatchStatsRows((st ?? []) as StatsMatchJoueurRow[])
+  }
+
   async function submitNotes() {
     if (!user || !id || !match || match.statut !== 'termine') return
     setErr(null)
@@ -264,6 +330,19 @@ export function MatchDetailPage() {
 
   const others = user ? parts.filter((p) => p.joueur_id !== user.id) : parts
 
+  const matchStatsDisplayRows = useMemo(() => {
+    const statsByJoueur = new Map(matchStatsRows.map((s) => [s.joueur_id, s]))
+    return parts
+      .map((p) => {
+        const st = statsByJoueur.get(p.joueur_id)
+        return st ? { part: p, st } : null
+      })
+      .filter((x): x is { part: Part; st: StatsMatchJoueurRow } => x != null)
+  }, [parts, matchStatsRows])
+
+  const showMatchStatsReadonly =
+    Boolean(match && match.statut === 'termine' && imIn && matchStatsDisplayRows.length > 0)
+
   return (
     <div className="space-y-8">
       <Link to="/" className="text-sm font-semibold text-primary hover:underline">
@@ -273,12 +352,17 @@ export function MatchDetailPage() {
       <Card className="shadow-md ring-1 ring-border/80">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <Badge
-              variant={match.statut === 'ouvert' ? 'default' : 'secondary'}
-              className="rounded-full px-2.5 font-semibold"
-            >
-              {match.statut === 'ouvert' ? 'Ouvert' : 'Terminé'}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant={match.statut === 'ouvert' ? 'default' : 'secondary'}
+                className="rounded-full px-2.5 font-semibold"
+              >
+                {match.statut === 'ouvert' ? 'Ouvert' : 'Terminé'}
+              </Badge>
+              <Badge variant="outline" className="rounded-full px-2.5 font-semibold">
+                {matchNiveauLabel((match.niveau ?? 'amateur') as MatchNiveau)}
+              </Badge>
+            </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {formatDateFr(match.date_match)} · {formatHeure(match.heure_match)}
             </h1>
@@ -331,6 +415,8 @@ export function MatchDetailPage() {
           </p>
         )}
       </Card>
+
+      <ChatBox matchId={match.id} userId={user?.id} canUseChat={imIn} />
 
       {showInviteCard && (
         <Card className="shadow-md ring-1 ring-border/80 ring-primary/15">
@@ -441,6 +527,152 @@ export function MatchDetailPage() {
           </div>
         )}
       </Card>
+
+      {showMatchStatsReadonly && (
+        <Card className="shadow-md ring-1 ring-border/80">
+          <h2 className="text-lg font-semibold text-foreground">Résultats du match</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Statistiques saisies par l’organisateur — lecture seule pour tous les participants.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+            <table className="w-full min-w-[28rem] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-3 py-2.5">Joueur</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">Buts</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">Passes</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">C. jaune</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">C. rouge</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matchStatsDisplayRows.map(({ part, st }) => (
+                  <tr key={st.id} className="border-b border-border/60 last:border-0">
+                    <td className="px-3 py-2.5 font-medium text-foreground">
+                      <Link to={`/joueur/${part.joueur_id}`} className="text-primary hover:underline">
+                        {part.profile.pseudo}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{st.buts}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{st.passes_decisives}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{st.cartons_jaunes}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{st.cartons_rouges}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {isOrg && match.statut === 'termine' && (
+        <Card className="shadow-md ring-1 ring-border/80">
+          <h2 className="text-lg font-semibold text-foreground">Statistiques du match</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Saisie réservée à l’organisateur : buts, passes décisives et cartons par joueur inscrit.
+          </p>
+          {statsErr && <p className="mt-3 text-sm font-medium text-destructive">{statsErr}</p>}
+          {statsMsg && <p className="mt-3 text-sm font-medium text-primary">{statsMsg}</p>}
+          {!showStatsEditor ? (
+            <Button type="button" className="mt-4" variant="secondary" onClick={() => setShowStatsEditor(true)}>
+              Saisir les stats
+            </Button>
+          ) : (
+            <div className="mt-4 space-y-4">
+              <ul className="space-y-4">
+                {parts.map((p) => {
+                  const d = statsDraft[p.joueur_id] ?? { buts: 0, passes: 0, jaunes: 0, rouges: 0 }
+                  return (
+                    <li
+                      key={p.id}
+                      className="grid gap-3 border-b border-border/60 pb-4 last:border-0 sm:grid-cols-[1fr,repeat(4,minmax(0,5rem))] sm:items-end"
+                    >
+                      <Link
+                        to={`/joueur/${p.joueur_id}`}
+                        className="font-medium text-foreground hover:underline sm:pb-2"
+                      >
+                        {p.profile.pseudo}
+                      </Link>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Buts</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={99}
+                          value={d.buts}
+                          onChange={(e) =>
+                            setStatsDraft((prev) => ({
+                              ...prev,
+                              [p.joueur_id]: { ...d, buts: parseInt(e.target.value, 10) || 0 },
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Passes</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={99}
+                          value={d.passes}
+                          onChange={(e) =>
+                            setStatsDraft((prev) => ({
+                              ...prev,
+                              [p.joueur_id]: { ...d, passes: parseInt(e.target.value, 10) || 0 },
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">C. jaune</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={10}
+                          value={d.jaunes}
+                          onChange={(e) =>
+                            setStatsDraft((prev) => ({
+                              ...prev,
+                              [p.joueur_id]: { ...d, jaunes: parseInt(e.target.value, 10) || 0 },
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">C. rouge</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={5}
+                          value={d.rouges}
+                          onChange={(e) =>
+                            setStatsDraft((prev) => ({
+                              ...prev,
+                              [p.joueur_id]: { ...d, rouges: parseInt(e.target.value, 10) || 0 },
+                            }))
+                          }
+                          className="h-9"
+                        />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                <Button type="button" disabled={actionPending} onClick={() => void submitStats()}>
+                  {actionPending ? 'Enregistrement…' : 'Enregistrer les stats'}
+                </Button>
+                <Button type="button" variant="ghost" disabled={actionPending} onClick={() => setShowStatsEditor(false)}>
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {match.statut === 'termine' && user && imIn && others.length > 0 && (
         <Card className="shadow-md ring-1 ring-border/80">

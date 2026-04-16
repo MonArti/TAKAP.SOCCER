@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { MatchRow, ProfileRow } from '@/types/database'
@@ -18,6 +18,7 @@ import {
   resolveDemoMatchOuvert,
   type DemoOpenResolved,
 } from '@/lib/launch-demo'
+import { MATCH_NIVEAUX, matchNiveauLabel, parseMatchNiveauParam, type MatchNiveau } from '@/lib/match-niveau'
 
 type MatchListItem = MatchRow & { nb_inscrits: number; organisateur_pseudo: string }
 
@@ -29,7 +30,13 @@ function passesHomeFilters(
   item: HomeListItem,
   q: string,
   ville: string,
+  niveauFilter: MatchNiveau | null,
 ): boolean {
+  if (niveauFilter) {
+    if (item.kind === 'demo') return false
+    const nv = item.m.niveau ?? 'amateur'
+    if (nv !== niveauFilter) return false
+  }
   const qn = normalizeSearch(q)
   if (ville) {
     const vn = normalizeSearch(ville)
@@ -86,6 +93,8 @@ function lieuVenueAndPin(lieu: string) {
 export function HomePage() {
   const { session } = useAuth()
   const authKey = session?.user?.id ?? 'anon'
+  const [searchParams, setSearchParams] = useSearchParams()
+  const niveauFilter = parseMatchNiveauParam(searchParams.get('niveau'))
 
   const [rows, setRows] = useState<MatchListItem[]>([])
   /** Erreur API : n’empêche pas l’affichage des exemples Takap embarqués. */
@@ -182,9 +191,19 @@ export function HomePage() {
   }, [rows, showDemo])
 
   const filtered = useMemo(
-    () => combined.filter((item) => passesHomeFilters(item, q, ville)),
-    [combined, q, ville],
+    () => combined.filter((item) => passesHomeFilters(item, q, ville, niveauFilter)),
+    [combined, q, ville, niveauFilter],
   )
+
+  function setNiveauInUrl(n: MatchNiveau) {
+    const next = new URLSearchParams(searchParams)
+    if (niveauFilter === n) {
+      next.delete('niveau')
+    } else {
+      next.set('niveau', n)
+    }
+    setSearchParams(next, { replace: true })
+  }
 
   const demoCount = useMemo(() => filtered.filter((i) => i.kind === 'demo').length, [filtered])
   const realCount = useMemo(() => filtered.filter((i) => i.kind === 'real').length, [filtered])
@@ -224,6 +243,33 @@ export function HomePage() {
           </label>
         </div>
         <Separator className="bg-[rgba(0,230,118,0.1)]" />
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-[#7A9180]">Niveau</p>
+          <div className="flex flex-wrap gap-2">
+            {MATCH_NIVEAUX.map((n) => {
+              const active = niveauFilter === n
+              return (
+                <Button
+                  key={n}
+                  type="button"
+                  variant={active ? 'default' : 'outline'}
+                  size="sm"
+                  className={
+                    active
+                      ? 'bg-[#00E676] font-bold text-[#0A0E0B] hover:bg-[#00E676]/90'
+                      : 'border-[rgba(0,230,118,0.25)] bg-transparent text-[#E8F0E9] hover:bg-[rgba(0,230,118,0.08)]'
+                  }
+                  onClick={() => setNiveauInUrl(n)}
+                >
+                  {matchNiveauLabel(n)}
+                </Button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-[#7A9180]">
+            Par défaut tous les niveaux sont affichés. Clique à nouveau sur un niveau actif pour tout réafficher.
+          </p>
+        </div>
         <div className="space-y-2">
           <Label htmlFor="home-q" className="sr-only">
             Rechercher un match
@@ -336,6 +382,7 @@ export function HomePage() {
                   prix={Number(m.prix)}
                   dateLine={`${formatDateFr(m.date_match)} · ${formatHeure(m.heure_match)}`}
                   status={status}
+                  niveauLabel={matchNiveauLabel((m.niveau ?? 'amateur') as MatchNiveau)}
                 />
               </li>
             )

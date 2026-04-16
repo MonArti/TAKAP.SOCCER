@@ -119,6 +119,8 @@ export type MatchCardProps = {
   prix: number
   dateLine: string
   status: MatchCardStatus
+  /** Libellé court affiché à côté du statut (ex. niveau du match). */
+  niveauLabel?: string
 }
 
 export function MatchCard({
@@ -132,6 +134,7 @@ export function MatchCard({
   prix,
   dateLine,
   status,
+  niveauLabel,
 }: MatchCardProps) {
   const title = `${nbMax} VS ${nbMax} — ${venueTitle.toUpperCase()}`
   const ratio = `${nbInscrits}/${nbMax}`
@@ -152,6 +155,11 @@ export function MatchCard({
           {variant === 'demo' && (
             <span className="rounded-md border border-[#FFD600]/40 bg-[#FFD600]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FFD600]">
               Exemple
+            </span>
+          )}
+          {niveauLabel && (
+            <span className="rounded-md border border-[rgba(0,230,118,0.35)] bg-[rgba(0,230,118,0.1)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7A9180]">
+              {niveauLabel}
             </span>
           )}
         </div>

@@ -21,12 +21,18 @@ export function ProfilePage() {
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [careerButs, setCareerButs] = useState(0)
+  const [careerPasses, setCareerPasses] = useState(0)
+  const [careerMatchsStats, setCareerMatchsStats] = useState(0)
 
   useEffect(() => {
     if (!user) return
     let cancelled = false
     ;(async () => {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
+      const [{ data, error }, { data: statRows, error: statErr }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        supabase.from('stats_match_joueur').select('buts, passes_decisives, match_id').eq('joueur_id', user.id),
+      ])
       if (cancelled) return
       if (error) setErr(error.message)
       else if (data) {
@@ -35,6 +41,23 @@ export function ProfilePage() {
         setAge(data.age != null ? String(data.age) : '')
         setTaille(data.taille != null ? String(data.taille) : '')
         setPoids(data.poids != null ? String(data.poids) : '')
+      }
+      if (!statErr && statRows) {
+        let b = 0
+        let p = 0
+        const mids = new Set<string>()
+        for (const r of statRows) {
+          b += Number((r as { buts: number }).buts) || 0
+          p += Number((r as { passes_decisives: number }).passes_decisives) || 0
+          mids.add((r as { match_id: string }).match_id)
+        }
+        setCareerButs(b)
+        setCareerPasses(p)
+        setCareerMatchsStats(mids.size)
+      } else {
+        setCareerButs(0)
+        setCareerPasses(0)
+        setCareerMatchsStats(0)
       }
       setLoading(false)
     })()
@@ -91,8 +114,26 @@ export function ProfilePage() {
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Matchs joués</dt>
+              <dt className="text-muted-foreground">Matchs joués (profil)</dt>
               <dd className="text-xl font-bold text-foreground">{profile.nb_matchs}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Total buts (stats)</dt>
+              <dd className="text-xl font-bold text-foreground">{careerButs}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Total passes (stats)</dt>
+              <dd className="text-xl font-bold text-foreground">{careerPasses}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Matchs avec stats saisies</dt>
+              <dd className="text-xl font-bold text-foreground">{careerMatchsStats}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Ratio buts / match (stats)</dt>
+              <dd className="text-xl font-bold text-foreground">
+                {careerMatchsStats > 0 ? (careerButs / careerMatchsStats).toFixed(2) : '—'}
+              </dd>
             </div>
             <div className="col-span-2">
               <dt className="text-muted-foreground">Rôle (base de données)</dt>
@@ -118,7 +159,7 @@ export function ProfilePage() {
             </div>
           </dl>
           <p className="mt-4 text-xs text-muted-foreground">
-            Niveau : calcul automatique prévu plus tard (V1 : indisponible).
+            Les totaux « stats » viennent des feuilles de match saisies par les organisateurs après les rencontres.
           </p>
         </Card>
       )}

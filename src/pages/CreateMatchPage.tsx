@@ -8,6 +8,7 @@ import { Button } from '@/components/Button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { MATCH_NIVEAUX, matchNiveauLabel, type MatchNiveau } from '@/lib/match-niveau'
 
 function buildLieuLine(name: string, address: string) {
   const n = name.trim()
@@ -31,6 +32,7 @@ export function CreateMatchPage() {
   const [lieuLng, setLieuLng] = useState<number | null>(null)
   const [prix, setPrix] = useState('5')
   const [nbMax, setNbMax] = useState('10')
+  const [niveau, setNiveau] = useState<MatchNiveau>('amateur')
   const [err, setErr] = useState<string | null>(null)
   const [mapsHint, setMapsHint] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -115,6 +117,7 @@ export function CreateMatchPage() {
       p_nb_max: nb,
       p_lieu_lat: lieuLat,
       p_lieu_lng: lieuLng,
+      p_niveau: niveau,
     })
     if (error) {
       setPending(false)
@@ -238,6 +241,22 @@ export function CreateMatchPage() {
             {mapsHint && (
               <p className="text-xs font-medium text-amber-800 dark:text-amber-200">{mapsHint}</p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="niveau">Niveau requis</Label>
+            <select
+              id="niveau"
+              value={niveau}
+              onChange={(e) => setNiveau(e.target.value as MatchNiveau)}
+              className="flex h-11 w-full max-w-md rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {MATCH_NIVEAUX.map((n) => (
+                <option key={n} value={n}>
+                  {matchNiveauLabel(n)}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">Indique le niveau attendu pour équilibrer la partie.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">

@@ -35,6 +35,7 @@ create table public.matchs (
   prix numeric(10,2) not null default 0,
   nb_max integer not null default 10,
   statut match_statut not null default 'ouvert',
+  niveau text not null default 'amateur' check (niveau in ('debutant', 'amateur', 'confirme', 'expert')),
   created_at timestamptz not null default now(),
   constraint matchs_nb_max_pos check (nb_max >= 2 and nb_max <= 22),
   constraint matchs_prix_nonneg check (prix >= 0)
@@ -61,6 +62,35 @@ create table public.notes (
   unique (match_id, donneur_id, receveur_id),
   constraint notes_not_self check (donneur_id <> receveur_id),
   constraint notes_range check (note between 1 and 5)
+);
+
+-- Chat par match (participants)
+create table public.messages_match (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matchs (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  message text not null,
+  created_at timestamptz not null default now(),
+  constraint messages_match_message_nonempty check (length(trim(message)) > 0)
+);
+
+create index messages_match_match_id_idx on public.messages_match (match_id);
+create index messages_match_match_id_created_at_idx on public.messages_match (match_id, created_at);
+
+-- Stats match (saisie organisateur après match)
+create table public.stats_match_joueur (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matchs (id) on delete cascade,
+  joueur_id uuid not null references public.profiles (id) on delete cascade,
+  buts smallint not null default 0,
+  passes_decisives smallint not null default 0,
+  cartons_jaunes smallint not null default 0,
+  cartons_rouges smallint not null default 0,
+  unique (match_id, joueur_id),
+  constraint stats_match_joueur_buts_nonneg check (buts >= 0),
+  constraint stats_match_joueur_passes_nonneg check (passes_decisives >= 0),
+  constraint stats_match_joueur_cj_nonneg check (cartons_jaunes >= 0),
+  constraint stats_match_joueur_cr_nonneg check (cartons_rouges >= 0)
 );
 
 create index idx_matchs_statut_date on public.matchs (statut, date_match);
@@ -379,7 +409,8 @@ create or replace function public.create_match(
   p_prix numeric,
   p_nb_max integer,
   p_lieu_lat double precision default null,
-  p_lieu_lng double precision default null
+  p_lieu_lng double precision default null,
+  p_niveau text default 'amateur'
 )
 returns uuid
 language plpgsql
@@ -389,12 +420,16 @@ as $$
 declare
   v_uid uuid := auth.uid();
   v_id uuid;
+  v_n text := coalesce(nullif(trim(p_niveau), ''), 'amateur');
 begin
   if v_uid is null then
     raise exception 'not authenticated';
   end if;
   if not exists (select 1 from public.profiles p where p.id = v_uid) then
     raise exception 'profil introuvable';
+  end if;
+  if v_n not in ('debutant', 'amateur', 'confirme', 'expert') then
+    raise exception 'niveau invalide';
   end if;
   insert into public.matchs (
     organisateur_id,
@@ -404,7 +439,8 @@ begin
     lieu_lat,
     lieu_lng,
     prix,
-    nb_max
+    nb_max,
+    niveau
   )
   values (
     v_uid,
@@ -414,14 +450,15 @@ begin
     p_lieu_lat,
     p_lieu_lng,
     p_prix,
-    p_nb_max
+    p_nb_max,
+    v_n
   )
   returning id into v_id;
   return v_id;
 end;
 $$;
 
-grant execute on function public.create_match(date, time, text, numeric, integer, double precision, double precision) to authenticated;
+grant execute on function public.create_match(date, time, text, numeric, integer, double precision, double precision, text) to authenticated;
 
 -- Profil public : notes récentes reçues (agrégé) + moyennes communauté (+ stats du visiteur si connecté)
 create or replace function public.get_public_profile_extras(p_profile_id uuid)
