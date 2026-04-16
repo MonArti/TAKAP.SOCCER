@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Bell, Compass, LayoutGrid, Settings, Shield, Trophy, User, Users } from 'lucide-react'
+import { Bell, Compass, Gift, LayoutGrid, Settings, Shield, Trophy, User, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { IosPushHintBanner } from '@/components/IosPushHintBanner'
@@ -123,6 +123,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavLink to="/profil" className={sideNavClass}>
               <User className="size-4 shrink-0 opacity-90" aria-hidden />
               Mon profil
+            </NavLink>
+            <NavLink to="/inviter" className={sideNavClass}>
+              <Gift className="size-4 shrink-0 opacity-90" aria-hidden />
+              Inviter des amis
             </NavLink>
             <NavLink to="/profil" className={sideNavClass}>
               <Settings className="size-4 shrink-0 opacity-90" aria-hidden />

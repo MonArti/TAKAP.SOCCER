@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
@@ -7,6 +7,8 @@ import { Button } from '@/components/Button'
 export function LoginPage() {
   const { signIn } = useAuth()
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
+  const justRegistered = searchParams.get('registered') === '1'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -32,6 +34,11 @@ export function LoginPage() {
     <div className="mx-auto max-w-md space-y-6">
       <h1 className="text-2xl font-bold tracking-tight text-foreground">Connexion</h1>
       <Card className="border-primary/15 ring-1 ring-primary/10">
+        {justRegistered && (
+          <p className="mb-4 rounded-lg border border-[rgba(0,230,118,0.25)] bg-[rgba(0,230,118,0.08)] px-3 py-2 text-sm text-primary">
+            Inscription enregistrée. Si une confirmation email est requise, valide-la puis connecte-toi.
+          </p>
+        )}
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">

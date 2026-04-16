@@ -11,6 +11,8 @@ export type ProfileRow = {
   poids: number | null
   note_moyenne: number
   nb_matchs: number
+  code_parrainage?: string | null
+  parrain_id?: string | null
   /** Absent si la colonne n’existe pas encore en base (exécuter admin_role.sql) */
   role?: ProfileRole
   created_at: string
@@ -88,6 +90,8 @@ export type Database = {
           poids?: number | null
           note_moyenne?: number
           nb_matchs?: number
+          code_parrainage?: string | null
+          parrain_id?: string | null
           role?: ProfileRole
         }
         Update: Partial<Omit<ProfileRow, 'id'>> & { id?: string }

@@ -22,7 +22,12 @@ type AuthContextValue = {
   /** Recharge le rôle depuis `profiles` (ex. après un SQL `role = admin` sans se déconnecter) */
   refreshAdminRole: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, pseudo: string) => Promise<{ error: Error | null }>
+  signUp: (
+    email: string,
+    password: string,
+    pseudo: string,
+    parrainageCode?: string | null,
+  ) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
 
@@ -145,17 +150,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? new Error(error.message) : null }
   }, [])
 
-  const signUp = useCallback(async (email: string, password: string, pseudo: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { pseudo: pseudo.trim() },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    })
-    return { error: error ? new Error(error.message) : null }
-  }, [])
+  const signUp = useCallback(
+    async (email: string, password: string, pseudo: string, parrainageCode?: string | null) => {
+      const ref = parrainageCode?.trim()
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            pseudo: pseudo.trim(),
+            ...(ref ? { parrainage_recu: ref } : {}),
+          },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      })
+      return { error: error ? new Error(error.message) : null }
+    },
+    [],
+  )
 
   const signOut = useCallback(async () => {
     syncOneSignalUser(null)

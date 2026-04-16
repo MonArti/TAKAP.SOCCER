@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { parseNoteMoyenne } from '@/lib/format'
+import { InviteShareButtons } from '@/components/InviteShareButtons'
 
 export function ProfilePage() {
   const { user, refreshAdminRole, isAdmin } = useAuth()
@@ -187,6 +188,10 @@ export function ProfilePage() {
           </Button>
         </form>
       </Card>
+
+      <div className="mt-6">
+        <InviteShareButtons compact />
+      </div>
     </div>
   )
 }

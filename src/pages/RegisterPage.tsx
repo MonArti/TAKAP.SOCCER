@@ -1,18 +1,34 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 
 export function RegisterPage() {
-  const { signUp } = useAuth()
+  const { user, signUp } = useAuth()
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
+  const refCode = searchParams.get('ref')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [pseudo, setPseudo] = useState('')
+  const [parrainCode, setParrainCode] = useState(() => refCode?.trim().toUpperCase() ?? '')
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    if (refCode?.trim()) {
+      setParrainCode(refCode.trim().toUpperCase())
+    }
+  }, [refCode])
+
+  useEffect(() => {
+    if (user) {
+      nav('/', { replace: true })
+    }
+  }, [user, nav])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,16 +39,17 @@ export function RegisterPage() {
       return
     }
     setPending(true)
-    const { error: err } = await signUp(email.trim(), password, pseudo.trim())
+    const code = parrainCode.trim() || null
+    const { error: err } = await signUp(email.trim(), password, pseudo.trim(), code)
     setPending(false)
     if (err) {
       setError(err.message)
       return
     }
     setInfo(
-      'Compte créé. Si la confirmation email est activée sur ton projet Supabase, vérifie ta boîte mail puis connecte-toi.',
+      'Compte créé. Si la confirmation email est activée sur ton projet Supabase, vérifie ta boîte mail puis connecte-toi. Ton code parrain est enregistré automatiquement.',
     )
-    setTimeout(() => nav('/login'), 4000)
+    setTimeout(() => nav('/login?registered=1'), 4000)
   }
 
   const field =
@@ -40,9 +57,22 @@ export function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">Inscription</h1>
+      <div className="text-center">
+        <div className="text-2xl font-black tracking-tight text-[#00E676]">Takap Soccer</div>
+        <p className="mt-2 text-sm text-muted-foreground">Crée ton compte et rejoins les matchs.</p>
+      </div>
+
       <Card className="border-primary/15 ring-1 ring-primary/10">
-        <form onSubmit={onSubmit} className="space-y-4">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Inscription</h1>
+
+        {refCode && (
+          <p className="mt-4 rounded-lg border border-[rgba(0,230,118,0.25)] bg-[rgba(0,230,118,0.1)] px-3 py-2 text-sm text-[#E8F0E9]">
+            Tu t’inscris avec l’invitation d’un ami (code <strong className="font-mono text-[#00E676]">{refCode}</strong>
+            ).
+          </p>
+        )}
+
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label htmlFor="pseudo" className="block text-sm font-medium text-muted-foreground">
               Pseudo
@@ -55,6 +85,7 @@ export function RegisterPage() {
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
               className={field}
+              placeholder="ex. Kyllian10"
             />
           </div>
           <div>
@@ -69,6 +100,7 @@ export function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={field}
+              placeholder="vous@exemple.com"
             />
           </div>
           <div>
@@ -85,7 +117,24 @@ export function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={field}
             />
-            <p className="mt-1 text-xs text-muted-foreground">Minimum 6 caractères (règle Supabase par défaut).</p>
+            <p className="mt-1 text-xs text-muted-foreground">Minimum 6 caractères.</p>
+          </div>
+          <div>
+            <label htmlFor="parrain" className="block text-sm font-medium text-muted-foreground">
+              Code de parrainage (optionnel)
+            </label>
+            <input
+              id="parrain"
+              type="text"
+              value={parrainCode}
+              onChange={(e) => setParrainCode(e.target.value.toUpperCase())}
+              className={field}
+              placeholder="ex. A1B2C3D4"
+              autoComplete="off"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Si un ami t’a partagé son code, saisis-le ici (identique au lien d’invitation).
+            </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           {info && <p className="text-sm text-primary">{info}</p>}
