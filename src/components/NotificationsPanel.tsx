@@ -15,6 +15,8 @@ function humanLine(n: NotificationRow, t: (k: string) => string): string {
     new_rating: 'notifications.type_new_rating',
     rank_changed: 'notifications.type_rank_changed',
     match_invite: 'notifications.type_match_invite',
+    defi_received: 'notifications.type_defi_received',
+    defi_accepted: 'notifications.type_defi_accepted',
   }
   const key = map[n.type as NotificationType]
   return key ? t(key) : t('notifications.type_default')

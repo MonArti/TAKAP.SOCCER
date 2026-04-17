@@ -19,6 +19,16 @@ import { DemoMatchPage } from '@/pages/DemoMatchPage'
 import { DemoOpenMatchPage } from '@/pages/DemoOpenMatchPage'
 import { JoueursExplorePage } from '@/pages/JoueursExplorePage'
 import { InvitePage } from '@/pages/InvitePage'
+import { TeamDetailPage } from '@/pages/TeamDetailPage'
+import { TeamsHubPage } from '@/pages/TeamsHubPage'
+import { CreateTeamPage } from '@/pages/CreateTeamPage'
+import { JoinTeamPage } from '@/pages/JoinTeamPage'
+import { MyTeamPage } from '@/pages/MyTeamPage'
+import { TournoisListPage } from '@/pages/TournoisListPage'
+import { TournoiCreatePage } from '@/pages/TournoiCreatePage'
+import { TournoiDetailPage } from '@/pages/TournoiDetailPage'
+import { DefierEquipePage } from '@/pages/DefierEquipePage'
+import { MesDefisPage } from '@/pages/MesDefisPage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -48,6 +58,59 @@ function AppRoutes() {
           element={
             <Protected>
               <JoueursExplorePage />
+            </Protected>
+          }
+        />
+        <Route path="/teams" element={<TeamsHubPage />} />
+        <Route path="/teams/:id" element={<TeamDetailPage />} />
+        <Route
+          path="/equipes/:id/defier"
+          element={
+            <Protected>
+              <DefierEquipePage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/defis"
+          element={
+            <Protected>
+              <MesDefisPage />
+            </Protected>
+          }
+        />
+        <Route path="/tournois" element={<TournoisListPage />} />
+        <Route
+          path="/tournois/creer"
+          element={
+            <Protected>
+              <TournoiCreatePage />
+            </Protected>
+          }
+        />
+        <Route path="/tournois/:id" element={<TournoiDetailPage />} />
+        <Route path="/equipes" element={<Navigate to="/teams" replace />} />
+        <Route
+          path="/equipes/creer"
+          element={
+            <Protected>
+              <CreateTeamPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/equipes/rejoindre"
+          element={
+            <Protected>
+              <JoinTeamPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/equipes/mon-equipe"
+          element={
+            <Protected>
+              <MyTeamPage />
             </Protected>
           }
         />

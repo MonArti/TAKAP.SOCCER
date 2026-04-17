@@ -36,7 +36,108 @@ export type MatchRow = {
   statut: MatchStatut
   /** Absent avant migration SQL `niveau_chat_stats.sql` — traiter comme `amateur`. */
   niveau?: MatchNiveau
+  /** FK optionnelle vers `equipes`. */
+  equipe_domicile_id?: string | null
+  equipe_exterieur_id?: string | null
+  score_domicile?: number | null
+  score_exterieur?: number | null
   created_at: string
+}
+
+export type TournoiType = 'elimination' | 'poules'
+
+export type TournoiRow = {
+  id: string
+  nom: string
+  date_debut: string | null
+  date_fin: string | null
+  lieu: string | null
+  type: TournoiType | null
+  statut: string
+  organisateur_id: string | null
+  created_at: string
+  /** Places max (migration tournois) — défaut UI 8 si absent. */
+  nb_equipes_max?: number | null
+}
+
+export type DefiStatut = 'en_attente' | 'accepte' | 'refuse'
+
+export type DefiRow = {
+  id: string
+  equipe_demandeur_id: string
+  equipe_receveur_id: string
+  statut: DefiStatut
+  match_id: string | null
+  date_proposee: string | null
+  message: string | null
+  created_at: string
+}
+
+export type TournoiParticipantRow = {
+  tournoi_id: string
+  equipe_id: string
+  points: number
+  buts_pour: number
+  buts_contre: number
+}
+
+export type MatchPhotoRow = {
+  id: string
+  match_id: string
+  url: string
+  uploaded_by: string
+  created_at: string
+}
+
+export type TeamRow = {
+  id: string
+  name: string
+  city: string
+  logo_url: string | null
+  color_primary: string | null
+  color_secondary: string | null
+  stadium: string | null
+  invite_code: string
+  created_by: string
+  created_at: string
+  points?: number | null
+}
+
+export type TeamMemberRow = {
+  id: string
+  team_id: string
+  profile_id: string
+  role: string | null
+  joined_at: string
+}
+
+/**
+ * Table `equipes`. Côté API, les couleurs sont normalisées depuis plusieurs noms de colonnes possibles
+ * (`normalizeEquipeRow` dans `equipes.ts`).
+ */
+export type EquipeRow = {
+  id: string
+  nom: string
+  ville: string | null
+  logo_url: string | null
+  couleur_principale: string | null
+  couleur_secondaire: string | null
+  stade: string | null
+  nb_victoires?: number | null
+  nb_defaites?: number | null
+  nb_matchs?: number | null
+  code_invitation?: string | null
+  created_by?: string | null
+  capitaine_id?: string | null
+  created_at: string
+}
+
+/** Table `equipe_membres`. */
+export type MembreEquipeRow = {
+  equipe_id: string
+  joueur_id: string
+  role: string | null
+  date_adhesion: string | null
 }
 
 export type MessageMatchRow = {
@@ -79,6 +180,8 @@ export type NotificationType =
   | 'new_rating'
   | 'rank_changed'
   | 'match_invite'
+  | 'defi_received'
+  | 'defi_accepted'
 
 export type InvitationStatut = 'en_attente' | 'acceptee' | 'refusee' | 'ignoree'
 
@@ -101,6 +204,9 @@ export type NotificationRow = {
 }
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: '14.5'
+  }
   public: {
     Tables: {
       profiles: {
@@ -135,9 +241,134 @@ export type Database = {
           nb_max?: number
           statut?: MatchStatut
           niveau?: MatchNiveau
+          equipe_domicile_id?: string | null
+          equipe_exterieur_id?: string | null
+          score_domicile?: number | null
+          score_exterieur?: number | null
           created_at?: string
         }
         Update: Partial<Omit<MatchRow, 'id'>>
+        Relationships: []
+      }
+      tournois: {
+        Row: TournoiRow
+        Insert: {
+          id?: string
+          nom: string
+          date_debut?: string | null
+          date_fin?: string | null
+          lieu?: string | null
+          type?: TournoiType | null
+          statut?: string
+          organisateur_id?: string | null
+          created_at?: string
+          nb_equipes_max?: number | null
+        }
+        Update: Partial<Omit<TournoiRow, 'id'>>
+        Relationships: []
+      }
+      defis: {
+        Row: DefiRow
+        Insert: {
+          id?: string
+          equipe_demandeur_id: string
+          equipe_receveur_id: string
+          statut?: DefiStatut
+          match_id?: string | null
+          date_proposee?: string | null
+          message?: string | null
+          created_at?: string
+        }
+        Update: {
+          statut?: DefiStatut
+          match_id?: string | null
+        }
+        Relationships: []
+      }
+      tournoi_participants: {
+        Row: TournoiParticipantRow
+        Insert: {
+          tournoi_id: string
+          equipe_id: string
+          points?: number
+          buts_pour?: number
+          buts_contre?: number
+        }
+        Update: Partial<Omit<TournoiParticipantRow, 'tournoi_id' | 'equipe_id'>>
+        Relationships: []
+      }
+      match_photos: {
+        Row: MatchPhotoRow
+        Insert: {
+          id?: string
+          match_id: string
+          url: string
+          uploaded_by: string
+          created_at?: string
+        }
+        Update: Partial<Omit<MatchPhotoRow, 'id'>>
+        Relationships: []
+      }
+      teams: {
+        Row: TeamRow
+        Insert: {
+          id?: string
+          name: string
+          city: string
+          logo_url?: string | null
+          color_primary?: string | null
+          color_secondary?: string | null
+          stadium?: string | null
+          invite_code: string
+          created_by: string
+          points?: number | null
+          created_at?: string
+        }
+        Update: Partial<Omit<TeamRow, 'id'>>
+        Relationships: []
+      }
+      team_members: {
+        Row: TeamMemberRow
+        Insert: {
+          id?: string
+          team_id: string
+          profile_id: string
+          role?: string | null
+          joined_at?: string
+        }
+        Update: Partial<Omit<TeamMemberRow, 'id'>>
+        Relationships: []
+      }
+      equipes: {
+        Row: EquipeRow
+        Insert: {
+          id?: string
+          nom: string
+          ville?: string | null
+          logo_url?: string | null
+          couleur_principale?: string | null
+          couleur_secondaire?: string | null
+          stade?: string | null
+          nb_victoires?: number | null
+          nb_defaites?: number | null
+          nb_matchs?: number | null
+          code_invitation?: string | null
+          created_by?: string | null
+          capitaine_id?: string | null
+          created_at?: string
+        }
+        Update: Partial<Omit<EquipeRow, 'id'>>
+        Relationships: []
+      }
+      equipe_membres: {
+        Row: MembreEquipeRow
+        Insert: {
+          equipe_id: string
+          joueur_id: string
+          role?: string | null
+          date_adhesion?: string | null
+        }
+        Update: Partial<MembreEquipeRow>
         Relationships: []
       }
       participations: {
@@ -218,7 +449,9 @@ export type Database = {
         Relationships: []
       }
     }
-    Views: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
       create_match: {
         Args: {
@@ -242,6 +475,8 @@ export type Database = {
     Enums: {
       match_statut: MatchStatut
     }
-    CompositeTypes: Record<string, never>
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }

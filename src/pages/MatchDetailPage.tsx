@@ -14,6 +14,8 @@ import { StarRatingInput } from '@/components/StarRatingInput'
 import { eurosForApp, formatDateForApp, formatHeure, isMatchDayPassedOrToday } from '@/lib/format'
 import type { MatchNiveau } from '@/lib/match-niveau'
 import { ChatBox } from '@/components/ChatBox'
+import { MatchPhotosSection } from '@/components/MatchPhotosSection'
+import { MatchShareBlock, type MatchSharePayload } from '@/components/MatchShareBlock'
 
 type Part = ParticipationRow & { profile: Pick<ProfileRow, 'id' | 'pseudo'> }
 
@@ -45,6 +47,7 @@ export function MatchDetailPage() {
   const [draftNotes, setDraftNotes] = useState<Record<string, number>>({})
   /** Évite de remettre loading=true quand seul `user` change (session / refresh) — ça provoquait un écran quasi vide et un clignotement. */
   const routeIdRef = useRef<string | undefined>(undefined)
+  const [equipeNoms, setEquipeNoms] = useState<{ home: string; away: string }>({ home: '', away: '' })
 
   const load = useCallback(async () => {
     if (!id) {
@@ -65,6 +68,20 @@ export function MatchDetailPage() {
     }
     const matchRow = m as MatchRow
     setMatch(matchRow)
+
+    const hid = matchRow.equipe_domicile_id
+    const aid = matchRow.equipe_exterieur_id
+    if (hid || aid) {
+      const ids = [hid, aid].filter(Boolean) as string[]
+      const { data: eqRows } = await supabase.from('equipes').select('id, nom').in('id', ids)
+      const em = new Map((eqRows ?? []).map((e) => [e.id as string, e.nom as string]))
+      setEquipeNoms({
+        home: hid ? em.get(hid) ?? '' : '',
+        away: aid ? em.get(aid) ?? '' : '',
+      })
+    } else {
+      setEquipeNoms({ home: '', away: '' })
+    }
 
     const [{ data: pList, error: e2 }, { data: org }] = await Promise.all([
       supabase.from('participations').select('id, match_id, joueur_id, a_paye, created_at').eq('match_id', id),
@@ -190,6 +207,39 @@ export function MatchDetailPage() {
   const showMatchStatsReadonly = Boolean(
     match && match.statut === 'termine' && imIn && matchStatsDisplayRows.length > 0,
   )
+
+  const sharePayload = useMemo((): MatchSharePayload | null => {
+    if (!match || match.statut !== 'termine' || !id) return null
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const home = equipeNoms.home || t('match_detail.equipe_unknown_short')
+    const away = equipeNoms.away || t('match_detail.equipe_unknown_short')
+    const sh = match.score_domicile != null ? String(match.score_domicile) : '?'
+    const sa = match.score_exterieur != null ? String(match.score_exterieur) : '?'
+    const byJ = new Map(parts.map((p) => [p.joueur_id, p.profile.pseudo]))
+    const scorers: string[] = []
+    for (const st of matchStatsRows) {
+      if (st.buts > 0) scorers.push(`${byJ.get(st.joueur_id) ?? t('common.player')} (${st.buts})`)
+    }
+    const scorersLine = scorers.length ? scorers.join(', ') : t('match_share.no_scorers')
+    let mvpName = t('match_share.no_mvp')
+    if (matchStatsRows.length) {
+      const sorted = [...matchStatsRows].sort((a, b) => {
+        if (b.buts !== a.buts) return b.buts - a.buts
+        return String(byJ.get(a.joueur_id)).localeCompare(String(byJ.get(b.joueur_id)))
+      })
+      const top = sorted[0]
+      if (top) mvpName = byJ.get(top.joueur_id) ?? t('common.player')
+    }
+    return {
+      matchUrl: `${origin}/matchs/${id}`,
+      homeName: home,
+      awayName: away,
+      scoreHome: sh,
+      scoreAway: sa,
+      scorersLine,
+      mvpName,
+    }
+  }, [match, id, equipeNoms, matchStatsRows, parts, t])
 
   async function reserve() {
     if (!user || !id || !match) return
@@ -390,6 +440,24 @@ export function MatchDetailPage() {
               {formatDateForApp(match.date_match)} · {formatHeure(match.heure_match)}
             </h1>
             <p className="text-muted-foreground">{match.lieu}</p>
+            {(equipeNoms.home || equipeNoms.away) && (
+              <div className="mt-3 rounded-xl border border-border/80 bg-muted/25 px-3 py-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {t('match_detail.equipe_vs', {
+                    home: equipeNoms.home || t('match_detail.equipe_unknown_short'),
+                    away: equipeNoms.away || t('match_detail.equipe_unknown_short'),
+                  })}
+                </p>
+                {match.statut === 'termine' && (match.score_domicile != null || match.score_exterieur != null) && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('match_detail.equipe_score')}:{' '}
+                    <span className="font-mono text-base font-bold text-foreground">
+                      {match.score_domicile ?? '—'} – {match.score_exterieur ?? '—'}
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
               {t('match_detail.organizer')}{' '}
               <Link
@@ -579,6 +647,13 @@ export function MatchDetailPage() {
             </table>
           </div>
         </Card>
+      )}
+
+      {match.statut === 'termine' && id && (
+        <>
+          <MatchPhotosSection matchId={id} userId={user?.id} canUpload={Boolean(user && (imIn || isOrg))} />
+          {sharePayload && <MatchShareBlock payload={sharePayload} />}
+        </>
       )}
 
       {isOrg && match.statut === 'termine' && (

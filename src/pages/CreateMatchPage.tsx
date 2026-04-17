@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { MATCH_NIVEAUX, type MatchNiveau } from '@/lib/match-niveau'
+import { attachEquipesToMatch, fetchAllEquipesForSelect } from '@/lib/equipes'
 
 function buildLieuLine(name: string, address: string) {
   const n = name.trim()
@@ -38,6 +39,9 @@ export function CreateMatchPage() {
   const [err, setErr] = useState<string | null>(null)
   const [mapsHint, setMapsHint] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [equipeOptions, setEquipeOptions] = useState<{ id: string; nom: string }[]>([])
+  const [homeTeamId, setHomeTeamId] = useState('')
+  const [awayTeamId, setAwayTeamId] = useState('')
 
   useEffect(() => {
     const input = lieuInputRef.current
@@ -94,6 +98,16 @@ export function CreateMatchPage() {
     }
   }, [t])
 
+  useEffect(() => {
+    let c = false
+    void fetchAllEquipesForSelect().then((opts) => {
+      if (!c) setEquipeOptions(opts)
+    })
+    return () => {
+      c = true
+    }
+  }, [])
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
@@ -106,6 +120,10 @@ export function CreateMatchPage() {
     }
     if (Number.isNaN(px) || px < 0) {
       setErr(t('create_match.err_price'))
+      return
+    }
+    if (homeTeamId && awayTeamId && homeTeamId === awayTeamId) {
+      setErr(t('create_match.err_same_team'))
       return
     }
     setPending(true)
@@ -130,6 +148,15 @@ export function CreateMatchPage() {
       return
     }
     const id = String(matchId)
+
+    const home = homeTeamId.trim() || null
+    const away = awayTeamId.trim() || null
+    if (home || away) {
+      const { error: teamErr } = await attachEquipesToMatch(id, home, away)
+      if (teamErr) {
+        console.warn('[Takap] équipes match:', teamErr.message)
+      }
+    }
 
     const { error: partErr } = await supabase.from('participations').insert({
       match_id: id,
@@ -251,6 +278,43 @@ export function CreateMatchPage() {
             </select>
             <p className="text-xs text-muted-foreground">{t('create_match.level_help')}</p>
           </div>
+          <Separator />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="homeTeam">{t('create_match.my_team')}</Label>
+              <select
+                id="homeTeam"
+                value={homeTeamId}
+                onChange={(e) => setHomeTeamId(e.target.value)}
+                className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">{t('create_match.team_none')}</option>
+                {equipeOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="awayTeam">{t('create_match.opponent_team')}</Label>
+              <select
+                id="awayTeam"
+                value={awayTeamId}
+                onChange={(e) => setAwayTeamId(e.target.value)}
+                className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">{t('create_match.team_none')}</option>
+                {equipeOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">{t('create_match.team_hint')}</p>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prix">{t('create_match.price_label')}</Label>

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TakapSoccer</string>
+    <string name="title_activity_main">TakapSoccer</string>
+    <string name="package_name">com.takapsoccer.app</string>
+    <string name="custom_url_scheme">com.takapsoccer.app</string>
+    <!-- Google Cloud Console → clé API Android (pas la clé « referrer web »). -->
+    <string name="google_maps_key">YOUR_ANDROID_MAPS_API_KEY</string>
+</resources>
