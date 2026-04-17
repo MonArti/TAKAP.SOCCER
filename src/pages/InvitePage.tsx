@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { InviteShareButtons } from '@/components/InviteShareButtons'
 
 export function InvitePage() {
+  const { t } = useTranslation()
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 md:p-6">
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-[#E8F0E9]">Inviter des amis</h1>
+        <h1 className="text-3xl font-black tracking-tight text-[#E8F0E9]">{t('invite_share.title')}</h1>
         <p className="mt-2 text-sm text-[#7A9180]">
-          Ton lien pointe vers l’inscription avec ton code en paramètre{' '}
-          <code className="rounded bg-[#1A211B] px-1 text-[#00E676]">?ref=</code>.
+          {t('invite_page.subtitle')}{' '}
+          <code className="rounded bg-[#1A211B] px-1 text-[#00E676]">?ref=</code>
         </p>
       </div>
 
@@ -18,15 +20,10 @@ export function InvitePage() {
         <div className="text-3xl" aria-hidden>
           🎁
         </div>
-        <h3 className="mt-2 font-semibold text-[#E8F0E9]">Pourquoi inviter ?</h3>
-        <p className="mt-1 text-sm text-[#7A9180]">
-          Plus on est nombreux, plus il est facile d’organiser des matchs entre amis.
-        </p>
-        <Link
-          to="/"
-          className="mt-4 inline-block text-sm font-bold text-[#00E676] hover:underline"
-        >
-          ← Retour aux matchs
+        <h3 className="mt-2 font-semibold text-[#E8F0E9]">{t('invite_page.why_title')}</h3>
+        <p className="mt-1 text-sm text-[#7A9180]">{t('invite_page.why_body')}</p>
+        <Link to="/" className="mt-4 inline-block text-sm font-bold text-[#00E676] hover:underline">
+          {t('invite_page.back_home')}
         </Link>
       </div>
     </div>

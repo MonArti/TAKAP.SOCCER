@@ -1,11 +1,39 @@
-export function formatDateFr(isoDate: string) {
+import i18n from '@/i18n'
+
+const LOCALE_BY_LANG: Record<string, string> = {
+  fr: 'fr-FR',
+  en: 'en-GB',
+  es: 'es-ES',
+  ar: 'ar-SA',
+}
+
+export function resolveUiLocale(i18nLng: string): string {
+  const base = (i18nLng ?? 'fr').split('-')[0] ?? 'fr'
+  return LOCALE_BY_LANG[base] ?? 'fr-FR'
+}
+
+function appLocale(): string {
+  return resolveUiLocale(i18n.language)
+}
+
+export function formatDateLocalized(isoDate: string, locale: string) {
   const d = new Date(isoDate + 'T12:00:00')
-  return d.toLocaleDateString('fr-FR', {
+  return d.toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   })
+}
+
+/** Uses current i18n language */
+export function formatDateForApp(isoDate: string) {
+  return formatDateLocalized(isoDate, appLocale())
+}
+
+/** @deprecated prefer formatDateForApp */
+export function formatDateFr(isoDate: string) {
+  return formatDateLocalized(isoDate, 'fr-FR')
 }
 
 /** heure_match from PG time is often "HH:MM:SS" */
@@ -20,17 +48,41 @@ export function formatHeureAffichage(heure: string) {
   return formatHeure(heure)
 }
 
-export function euros(n: number) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
+export function eurosLocalized(n: number, locale: string) {
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(n)
 }
 
-/** Niveau affiché à partir de la note moyenne (indicatif). */
+/** Uses current i18n language */
+export function eurosForApp(n: number) {
+  return eurosLocalized(n, appLocale())
+}
+
+/** @deprecated prefer eurosForApp */
+export function euros(n: number) {
+  return eurosLocalized(n, 'fr-FR')
+}
+
+export type RatingBandKey = 'unrated' | 'beginner' | 'casual' | 'intermediate' | 'strong'
+
+export function ratingBandFromNote(noteMoyenne: number): RatingBandKey {
+  if (noteMoyenne <= 0) return 'unrated'
+  if (noteMoyenne < 2.25) return 'beginner'
+  if (noteMoyenne < 3.25) return 'casual'
+  if (noteMoyenne < 4.25) return 'intermediate'
+  return 'strong'
+}
+
+/** @deprecated prefer ratingBandFromNote + i18n t(`rating_bands.${key}`) */
 export function niveauIndicatifFromNote(noteMoyenne: number): string {
-  if (noteMoyenne <= 0) return 'Pas encore noté'
-  if (noteMoyenne < 2.25) return 'Débutant'
-  if (noteMoyenne < 3.25) return 'Loisir'
-  if (noteMoyenne < 4.25) return 'Confirmé'
-  return 'Très solide'
+  const k = ratingBandFromNote(noteMoyenne)
+  const legacy: Record<RatingBandKey, string> = {
+    unrated: 'Pas encore noté',
+    beginner: 'Débutant',
+    casual: 'Loisir',
+    intermediate: 'Confirmé',
+    strong: 'Très solide',
+  }
+  return legacy[k]
 }
 
 /** Recherche insensible aux accents / casse. */
@@ -51,7 +103,7 @@ export function parseNoteMoyenne(v: unknown): number {
   return 0
 }
 
-/** True si la date du match (jour calendaire) est passée ou aujourd’hui */
+/** True si la date du match (jour calendaire) est passée ou aujourd'hui */
 export function isMatchDayPassedOrToday(dateIso: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)

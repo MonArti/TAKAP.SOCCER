@@ -1,30 +1,28 @@
 import { Bell } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { getOneSignalAppId } from '@/lib/onesignal'
+import { resolveUiLocale } from '@/lib/format'
 import type { NotificationRow, NotificationType } from '@/types/database'
 import { cn } from '@/lib/utils'
 
-function humanLine(n: NotificationRow): string {
+function humanLine(n: NotificationRow, t: (k: string) => string): string {
   const c = n.content?.trim()
   if (c) return c
-  switch (n.type as NotificationType) {
-    case 'match_created':
-      return 'Un joueur a créé un match.'
-    case 'new_rating':
-      return 'Tu as reçu une nouvelle note.'
-    case 'rank_changed':
-      return 'Ton classement a changé.'
-    case 'match_invite':
-      return 'Tu as été invité à un match. Ouvre le match et clique sur « Rejoindre ».'
-    default:
-      return 'Nouvelle activité.'
+  const map: Partial<Record<NotificationType, string>> = {
+    match_created: 'notifications.type_match_created',
+    new_rating: 'notifications.type_new_rating',
+    rank_changed: 'notifications.type_rank_changed',
+    match_invite: 'notifications.type_match_invite',
   }
+  const key = map[n.type as NotificationType]
+  return key ? t(key) : t('notifications.type_default')
 }
 
-function formatWhen(iso: string) {
+function formatWhen(iso: string, locale: string) {
   try {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString(locale, {
       day: 'numeric',
       month: 'short',
       hour: '2-digit',
@@ -36,18 +34,20 @@ function formatWhen(iso: string) {
 }
 
 export function NotificationsPanel() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const { notifications, loading, markAsRead } = useNotifications()
   const hasOneSignal = Boolean(getOneSignalAppId())
+  const locale = resolveUiLocale(i18n.language)
 
   if (!user) {
     return (
       <section className="rounded-2xl border border-[rgba(0,230,118,0.12)] bg-[#1A211B] p-4">
         <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-[#00E676]">
           <Bell className="size-3.5" aria-hidden />
-          Notifications
+          {t('notifications.title')}
         </h2>
-        <p className="mt-2 text-sm text-[#7A9180]">Connecte-toi pour voir tes notifications.</p>
+        <p className="mt-2 text-sm text-[#7A9180]">{t('notifications.login_prompt')}</p>
       </section>
     )
   }
@@ -56,18 +56,16 @@ export function NotificationsPanel() {
     <section id="notifications-panel" className="rounded-2xl border border-[rgba(0,230,118,0.12)] bg-[#1A211B] p-4">
       <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-[#00E676]">
         <Bell className="size-3.5" aria-hidden />
-        Notifications
+        {t('notifications.title')}
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-[#7A9180]">
-        {hasOneSignal
-          ? 'Push OneSignal en complément — touche une ligne non lue pour la marquer lue.'
-          : 'Touche une notification non lue pour la marquer comme lue.'}
+        {hasOneSignal ? t('notifications.hint_push') : t('notifications.hint_no_push')}
       </p>
 
-      {loading && <p className="mt-3 text-sm text-[#7A9180]">Chargement…</p>}
+      {loading && <p className="mt-3 text-sm text-[#7A9180]">{t('common.loading')}</p>}
 
       {!loading && notifications.length === 0 && (
-        <p className="mt-3 text-sm text-[#7A9180]">Aucune notification pour l’instant.</p>
+        <p className="mt-3 text-sm text-[#7A9180]">{t('notifications.empty')}</p>
       )}
 
       {!loading && notifications.length > 0 && (
@@ -94,8 +92,8 @@ export function NotificationsPanel() {
                   aria-hidden
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-medium text-[#7A9180]">{formatWhen(n.created_at)}</p>
-                  <p className="mt-0.5 text-sm font-medium leading-snug">{humanLine(n)}</p>
+                  <p className="text-[10px] font-medium text-[#7A9180]">{formatWhen(n.created_at, locale)}</p>
+                  <p className="mt-0.5 text-sm font-medium leading-snug">{humanLine(n, t)}</p>
                 </div>
               </button>
             </li>

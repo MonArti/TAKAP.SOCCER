@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import type { ProfileRow } from '@/types/database'
@@ -11,6 +12,7 @@ import { parseNoteMoyenne } from '@/lib/format'
 import { InviteShareButtons } from '@/components/InviteShareButtons'
 
 export function ProfilePage() {
+  const { t } = useTranslation()
   const { user, refreshAdminRole, isAdmin } = useAuth()
   const [profile, setProfile] = useState<ProfileRow | null>(null)
   const [pseudo, setPseudo] = useState('')
@@ -91,57 +93,58 @@ export function ProfilePage() {
       setErr(error.message)
       return
     }
-    setMsg('Profil enregistré.')
+    setMsg(t('profile.saved'))
   }
 
-  if (loading) return <p className="text-sm font-medium text-muted-foreground">Chargement du profil…</p>
+  if (loading)
+    return <p className="text-sm font-medium text-muted-foreground">{t('common.loading_profile')}</p>
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Mon profil</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Statistiques et informations visibles des autres joueurs.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('profile.title')}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t('profile.subtitle')}</p>
       </div>
 
       {profile && (
         <Card className="border-primary/15 bg-gradient-to-br from-primary/5 to-card shadow-md ring-primary/10">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Statistiques</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('profile.stats_section')}</h2>
           <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <dt className="text-muted-foreground">Note moyenne</dt>
+              <dt className="text-muted-foreground">{t('profile.avg_rating')}</dt>
               <dd className="text-xl font-bold text-foreground">
                 {parseNoteMoyenne(profile.note_moyenne).toFixed(2)} / 5
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Matchs joués (profil)</dt>
+              <dt className="text-muted-foreground">{t('profile.matches_profile')}</dt>
               <dd className="text-xl font-bold text-foreground">{profile.nb_matchs}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Total buts (stats)</dt>
+              <dt className="text-muted-foreground">{t('profile.total_goals')}</dt>
               <dd className="text-xl font-bold text-foreground">{careerButs}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Total passes (stats)</dt>
+              <dt className="text-muted-foreground">{t('profile.total_assists')}</dt>
               <dd className="text-xl font-bold text-foreground">{careerPasses}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Matchs avec stats saisies</dt>
+              <dt className="text-muted-foreground">{t('profile.matches_with_stats')}</dt>
               <dd className="text-xl font-bold text-foreground">{careerMatchsStats}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Ratio buts / match (stats)</dt>
+              <dt className="text-muted-foreground">{t('profile.ratio_goals')}</dt>
               <dd className="text-xl font-bold text-foreground">
-                {careerMatchsStats > 0 ? (careerButs / careerMatchsStats).toFixed(2) : '—'}
+                {careerMatchsStats > 0 ? (careerButs / careerMatchsStats).toFixed(2) : t('common.dash')}
               </dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-muted-foreground">Rôle (base de données)</dt>
+              <dt className="text-muted-foreground">{t('profile.role_db')}</dt>
               <dd className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
-                <span>{profile.role ?? '—'}</span>
+                <span>{profile.role ?? t('common.dash')}</span>
                 {isAdmin && (
                   <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    Admin
+                    {t('common.admin')}
                   </span>
                 )}
                 <button
@@ -149,25 +152,20 @@ export function ProfilePage() {
                   onClick={() => void refreshAdminRole()}
                   className="text-xs font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
                 >
-                  Recharger le rôle
+                  {t('profile.reload_role')}
                 </button>
               </dd>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Si tu viens de passer <code className="rounded bg-muted px-1">admin</code> en SQL, clique ici ou
-                reconnecte-toi.
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{t('profile.admin_sql_hint')}</p>
             </div>
           </dl>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Les totaux « stats » viennent des feuilles de match saisies par les organisateurs après les rencontres.
-          </p>
+          <p className="mt-4 text-xs text-muted-foreground">{t('profile.stats_source')}</p>
         </Card>
       )}
 
       <Card className="shadow-md ring-1 ring-border/80">
         <form onSubmit={save} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="pseudo">Pseudo</Label>
+            <Label htmlFor="pseudo">{t('common.pseudo')}</Label>
             <Input
               id="pseudo"
               required
@@ -180,7 +178,7 @@ export function ProfilePage() {
           <Separator />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="age">Âge</Label>
+              <Label htmlFor="age">{t('common.age')}</Label>
               <Input
                 id="age"
                 type="number"
@@ -189,12 +187,12 @@ export function ProfilePage() {
                 max={99}
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                placeholder="—"
+                placeholder={t('common.dash')}
                 className="h-11"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taille">Taille (cm)</Label>
+              <Label htmlFor="taille">{t('common.height_cm')}</Label>
               <Input
                 id="taille"
                 type="number"
@@ -203,12 +201,12 @@ export function ProfilePage() {
                 max={250}
                 value={taille}
                 onChange={(e) => setTaille(e.target.value)}
-                placeholder="—"
+                placeholder={t('common.dash')}
                 className="h-11"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="poids">Poids (kg)</Label>
+              <Label htmlFor="poids">{t('common.weight_kg')}</Label>
               <Input
                 id="poids"
                 type="number"
@@ -217,7 +215,7 @@ export function ProfilePage() {
                 max={200}
                 value={poids}
                 onChange={(e) => setPoids(e.target.value)}
-                placeholder="—"
+                placeholder={t('common.dash')}
                 className="h-11"
               />
             </div>
@@ -225,7 +223,7 @@ export function ProfilePage() {
           {err && <p className="text-sm font-medium text-destructive">{err}</p>}
           {msg && <p className="text-sm font-medium text-primary">{msg}</p>}
           <Button type="submit" disabled={saving}>
-            {saving ? 'Enregistrement…' : 'Enregistrer'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </form>
       </Card>

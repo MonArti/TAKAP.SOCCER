@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { MatchRow, ProfileRow } from '@/types/database'
@@ -11,14 +12,14 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { formatDateFr, formatHeure, formatHeureAffichage, normalizeSearch } from '@/lib/format'
+import { formatDateForApp, formatHeure, formatHeureAffichage, normalizeSearch } from '@/lib/format'
 import {
   getDemoMatchsOuverts,
   getDemoVillesJoueurs,
   resolveDemoMatchOuvert,
   type DemoOpenResolved,
 } from '@/lib/launch-demo'
-import { MATCH_NIVEAUX, matchNiveauLabel, parseMatchNiveauParam, type MatchNiveau } from '@/lib/match-niveau'
+import { MATCH_NIVEAUX, parseMatchNiveauParam, type MatchNiveau } from '@/lib/match-niveau'
 
 type MatchListItem = MatchRow & { nb_inscrits: number; organisateur_pseudo: string }
 
@@ -91,6 +92,7 @@ function lieuVenueAndPin(lieu: string) {
 }
 
 export function HomePage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const authKey = session?.user?.id ?? 'anon'
   const [searchParams, setSearchParams] = useSearchParams()
@@ -123,9 +125,7 @@ export function HomePage() {
       if (e1) {
         if (!cancelled) {
           setRows([])
-          setRemoteWarn(
-            `Les matchs en ligne n’ont pas pu être chargés (${e1.message}). Les exemples Takap ci-dessous restent disponibles.`,
-          )
+          setRemoteWarn(t('home.remote_load_error', { error: e1.message }))
         }
         setLoading(false)
         return
@@ -147,7 +147,9 @@ export function HomePage() {
       ])
       const detailErr =
         e2 || e3
-          ? `Détail des matchs incomplet (${[e2?.message, e3?.message].filter(Boolean).join(' ; ')}). Pseudos / places peuvent être approximatifs.`
+          ? t('home.remote_detail_error', {
+              detail: [e2?.message, e3?.message].filter(Boolean).join(' ; '),
+            })
           : null
       const countByMatch = new Map<string, number>()
       for (const p of parts ?? []) {
@@ -160,7 +162,7 @@ export function HomePage() {
       const enriched: MatchListItem[] = list.map((m) => ({
         ...m,
         nb_inscrits: countByMatch.get(m.id) ?? 0,
-        organisateur_pseudo: pseudoById.get(m.organisateur_id) ?? 'Organisateur',
+        organisateur_pseudo: pseudoById.get(m.organisateur_id) ?? t('common.organizer_fallback'),
       }))
       if (!cancelled) {
         setRows(enriched)
@@ -171,7 +173,7 @@ export function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [authKey])
+  }, [authKey, t])
 
   const combined = useMemo(() => {
     const realItems: HomeListItem[] = rows.map((m) => ({ kind: 'real', m }))
@@ -208,30 +210,32 @@ export function HomePage() {
   const demoCount = useMemo(() => filtered.filter((i) => i.kind === 'demo').length, [filtered])
   const realCount = useMemo(() => filtered.filter((i) => i.kind === 'real').length, [filtered])
 
+  const resultsLine = useMemo(() => {
+    const bits: string[] = [t('home.results_summary', { count: filtered.length })]
+    if (showDemo && demoCount > 0) bits.push(t('home.demo_part', { count: demoCount }))
+    if (realCount > 0) bits.push(t('home.real_part', { count: realCount }))
+    return bits.join(' · ')
+  }, [t, filtered.length, showDemo, demoCount, realCount])
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-black tracking-tight text-[#E8F0E9]">Matchs disponibles</h1>
+          <h1 className="text-3xl font-black tracking-tight text-[#E8F0E9]">{t('home.title')}</h1>
           <Badge
             variant="secondary"
             className="rounded-full border border-[rgba(0,230,118,0.35)] bg-[rgba(0,230,118,0.12)] text-[11px] font-bold uppercase tracking-wide text-[#00E676]"
           >
-            Live
+            {t('common.live')}
           </Badge>
         </div>
-        <p className="max-w-2xl text-sm leading-relaxed text-[#7A9180]">
-          Réserve ta place — filtre par lieu ou texte ; active « Exemples Takap » pour tester sans base
-          remplie.
-        </p>
-        <p className="text-[11px] text-[#7A9180]/90">
-          Si ce bloc n’apparaît pas après déploiement : vide le cache ou ouvre en navigation privée.
-        </p>
+        <p className="max-w-2xl text-sm leading-relaxed text-[#7A9180]">{t('home.intro')}</p>
+        <p className="text-[11px] text-[#7A9180]/90">{t('home.cache_hint')}</p>
       </div>
 
       <Card className="space-y-4 border-[rgba(0,230,118,0.12)] bg-[#1A211B] shadow-[0_16px_48px_-32px_rgba(0,0,0,0.9)] ring-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-bold text-[#E8F0E9]">Recherche & filtres</h2>
+          <h2 className="text-base font-bold text-[#E8F0E9]">{t('home.filters_title')}</h2>
           <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-[#7A9180]">
             <input
               type="checkbox"
@@ -239,12 +243,12 @@ export function HomePage() {
               onChange={(e) => setShowDemo(e.target.checked)}
               className="size-4 rounded border-[rgba(0,230,118,0.25)] bg-[#0A0E0B] text-[#00E676] focus:ring-2 focus:ring-[#00E676]/40"
             />
-            Exemples Takap
+            {t('home.demo_examples')}
           </label>
         </div>
         <Separator className="bg-[rgba(0,230,118,0.1)]" />
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-[#7A9180]">Niveau</p>
+          <p className="text-xs font-semibold text-[#7A9180]">{t('home.level')}</p>
           <div className="flex flex-wrap gap-2">
             {MATCH_NIVEAUX.map((n) => {
               const active = niveauFilter === n
@@ -261,32 +265,30 @@ export function HomePage() {
                   }
                   onClick={() => setNiveauInUrl(n)}
                 >
-                  {matchNiveauLabel(n)}
+                  {t(`levels.${n}`)}
                 </Button>
               )
             })}
           </div>
-          <p className="text-[11px] text-[#7A9180]">
-            Par défaut tous les niveaux sont affichés. Clique à nouveau sur un niveau actif pour tout réafficher.
-          </p>
+          <p className="text-[11px] text-[#7A9180]">{t('home.level_hint')}</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="home-q" className="sr-only">
-            Rechercher un match
+            {t('home.search_label')}
           </Label>
           <Input
             id="home-q"
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Lieu, organisateur…"
+            placeholder={t('home.search_placeholder')}
             className="h-11 border-[rgba(0,230,118,0.15)] bg-[#0A0E0B] text-base text-[#E8F0E9] placeholder:text-[#7A9180]/70 md:text-sm"
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="home-ville" className="text-xs text-[#7A9180]">
-              Ville (lieu du match)
+              {t('home.city_label')}
             </Label>
             <select
               id="home-ville"
@@ -294,16 +296,14 @@ export function HomePage() {
               onChange={(e) => setVille(e.target.value)}
               className="flex h-11 w-full rounded-lg border border-[rgba(0,230,118,0.15)] bg-[#0A0E0B] px-3 text-sm text-[#E8F0E9] shadow-sm outline-none focus-visible:border-[#00E676] focus-visible:ring-2 focus-visible:ring-[#00E676]/35"
             >
-              <option value="">Toutes les villes</option>
+              <option value="">{t('home.all_cities')}</option>
               {villesOptions.filter(Boolean).map((v) => (
                 <option key={v} value={v}>
                   {v}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-[#7A9180]">
-              Pour les vrais matchs, la ville est détectée dans le texte du lieu.
-            </p>
+            <p className="text-xs text-[#7A9180]">{t('home.city_help')}</p>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
             <Button
@@ -316,7 +316,7 @@ export function HomePage() {
                 setVille('')
               }}
             >
-              Réinitialiser
+              {t('common.reset')}
             </Button>
             <Link
               to="/matchs/nouveau"
@@ -325,20 +325,18 @@ export function HomePage() {
                 'h-11 w-full justify-center bg-[#00E676] font-bold text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] hover:brightness-110 sm:w-auto',
               )}
             >
-              Créer un match
+              {t('home.create_match')}
             </Link>
           </div>
         </div>
         {!loading && (
           <p className="text-xs text-[#7A9180]">
-            {filtered.length} résultat{filtered.length !== 1 ? 's' : ''}
-            {showDemo && demoCount > 0 && ` · dont ${demoCount} exemple${demoCount > 1 ? 's' : ''}`}
-            {realCount > 0 && ` · ${realCount} réel${realCount > 1 ? 's' : ''}`}
+            {resultsLine}
           </p>
         )}
       </Card>
 
-      {loading && <p className="text-sm font-medium text-[#7A9180]">Chargement des matchs…</p>}
+      {loading && <p className="text-sm font-medium text-[#7A9180]">{t('common.loading_matches')}</p>}
       {remoteWarn && (
         <Card className="border border-amber-500/35 bg-amber-500/10 text-sm text-amber-100 shadow-none">
           {remoteWarn}
@@ -347,10 +345,8 @@ export function HomePage() {
 
       {!loading && filtered.length === 0 && (
         <Card className="border border-dashed border-[rgba(0,230,118,0.2)] bg-[#1A211B]">
-          <p className="text-[#E8F0E9]">Aucun match ne correspond à ces critères.</p>
-          <p className="mt-2 text-sm text-[#7A9180]">
-            Élargis la recherche ou réactive les exemples Takap.
-          </p>
+          <p className="text-[#E8F0E9]">{t('home.no_results')}</p>
+          <p className="mt-2 text-sm text-[#7A9180]">{t('home.no_results_hint')}</p>
           <Link
             to="/matchs/nouveau"
             className={cn(
@@ -358,7 +354,7 @@ export function HomePage() {
               'mt-4 inline-flex h-11 justify-center bg-[#00E676] font-bold text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] hover:brightness-110',
             )}
           >
-            Créer un vrai match →
+            {t('home.create_real_match')}
           </Link>
         </Card>
       )}
@@ -380,9 +376,9 @@ export function HomePage() {
                   organizerDisplay={m.organisateur_pseudo}
                   nbInscrits={m.nb_inscrits}
                   prix={Number(m.prix)}
-                  dateLine={`${formatDateFr(m.date_match)} · ${formatHeure(m.heure_match)}`}
+                  dateLine={`${formatDateForApp(m.date_match)} · ${formatHeure(m.heure_match)}`}
                   status={status}
-                  niveauLabel={matchNiveauLabel((m.niveau ?? 'amateur') as MatchNiveau)}
+                  niveauLabel={t(`levels.${(m.niveau ?? 'amateur') as MatchNiveau}`)}
                 />
               </li>
             )
@@ -402,7 +398,7 @@ export function HomePage() {
                 organizerDisplay={m.orgPrenom}
                 nbInscrits={m.nb_inscrits}
                 prix={Number(m.prix)}
-                dateLine={`${formatDateFr(m.date)} · ${formatHeureAffichage(m.heure)}`}
+                dateLine={`${formatDateForApp(m.date)} · ${formatHeureAffichage(m.heure)}`}
                 status={status}
               />
             </li>
@@ -413,10 +409,10 @@ export function HomePage() {
       <Separator className="bg-[rgba(0,230,118,0.1)]" />
       <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-center text-xs text-[#7A9180]">
         <Link to="/demo" className="font-bold text-[#00E676] transition hover:underline">
-          Explorer la démo
+          {t('home.link_demo')}
         </Link>
         <Link to="/joueurs" className="font-bold text-[#00E676] transition hover:underline">
-          Annuaire joueurs
+          {t('home.link_players_dir')}
         </Link>
       </div>
     </div>

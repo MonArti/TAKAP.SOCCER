@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import type { MatchRow } from '@/types/database'
 import { Card } from '@/components/Card'
-import { formatDateFr, formatHeure } from '@/lib/format'
+import { formatDateForApp, formatHeure } from '@/lib/format'
 
 export function MyMatchesPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [rows, setRows] = useState<MatchRow[]>([])
   const [err, setErr] = useState<string | null>(null)
@@ -32,20 +34,20 @@ export function MyMatchesPage() {
     }
   }, [user])
 
-  if (loading) return <p className="text-zinc-500">Chargement…</p>
+  if (loading) return <p className="text-zinc-500">{t('common.loading')}</p>
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900">Mes matchs (organisateur)</h1>
+      <h1 className="text-2xl font-bold text-zinc-900">{t('my_matches.title')}</h1>
       {err && <Card className="border-red-200 bg-red-50 text-sm text-red-800">{err}</Card>}
       {rows.length === 0 && (
         <Card>
-          <p className="text-zinc-600">Tu n’as pas encore créé de match.</p>
+          <p className="text-zinc-600">{t('my_matches.empty')}</p>
           <Link
             to="/matchs/nouveau"
             className="mt-2 inline-block text-sm font-semibold text-brand-700 hover:underline"
           >
-            Créer un match →
+            {t('my_matches.create_cta')}
           </Link>
         </Card>
       )}
@@ -56,7 +58,7 @@ export function MyMatchesPage() {
               <Card className="transition hover:border-brand-200">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-zinc-900">
-                    {formatDateFr(m.date_match)} · {formatHeure(m.heure_match)}
+                    {formatDateForApp(m.date_match)} · {formatHeure(m.heure_match)}
                   </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -65,7 +67,7 @@ export function MyMatchesPage() {
                         : 'bg-zinc-100 text-zinc-600'
                     }`}
                   >
-                    {m.statut === 'ouvert' ? 'Ouvert' : 'Terminé'}
+                    {m.statut === 'ouvert' ? t('match_detail.status_open') : t('match_detail.status_done')}
                   </span>
                 </div>
                 <p className="mt-1 truncate text-sm text-zinc-500">{m.lieu}</p>

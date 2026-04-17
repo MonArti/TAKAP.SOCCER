@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { getGoogleMapsApiKey, loadGoogleMapsScript } from '@/lib/google-maps'
@@ -8,7 +9,7 @@ import { Button } from '@/components/Button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { MATCH_NIVEAUX, matchNiveauLabel, type MatchNiveau } from '@/lib/match-niveau'
+import { MATCH_NIVEAUX, type MatchNiveau } from '@/lib/match-niveau'
 
 function buildLieuLine(name: string, address: string) {
   const n = name.trim()
@@ -18,6 +19,7 @@ function buildLieuLine(name: string, address: string) {
 }
 
 export function CreateMatchPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const nav = useNavigate()
   const lieuInputRef = useRef<HTMLInputElement>(null)
@@ -41,9 +43,7 @@ export function CreateMatchPage() {
     const input = lieuInputRef.current
     if (!input || !getGoogleMapsApiKey()) {
       if (!getGoogleMapsApiKey()) {
-        setMapsHint(
-          'Sans VITE_GOOGLE_MAPS_API_KEY, saisis le lieu à la main (pas d’autocomplétion ni de GPS enregistré).',
-        )
+        setMapsHint(t('create_match.maps_no_key'))
       }
       return
     }
@@ -80,7 +80,7 @@ export function CreateMatchPage() {
       })
       .catch(() => {
         if (!cancelled) {
-          setMapsHint('Google Maps n’a pas pu être chargé. Vérifie la clé et les domaines autorisés.')
+          setMapsHint(t('create_match.maps_load_error'))
         }
       })
 
@@ -92,7 +92,7 @@ export function CreateMatchPage() {
       }
       autocompleteRef.current = null
     }
-  }, [])
+  }, [t])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -101,11 +101,11 @@ export function CreateMatchPage() {
     const nb = parseInt(nbMax, 10)
     const px = parseFloat(prix.replace(',', '.'))
     if (Number.isNaN(nb) || nb < 2 || nb > 22) {
-      setErr('Nombre max de joueurs : entre 2 et 22.')
+      setErr(t('create_match.err_players_range'))
       return
     }
     if (Number.isNaN(px) || px < 0) {
-      setErr('Prix invalide.')
+      setErr(t('create_match.err_price'))
       return
     }
     setPending(true)
@@ -126,7 +126,7 @@ export function CreateMatchPage() {
     }
     if (!matchId) {
       setPending(false)
-      setErr('Réponse vide du serveur.')
+      setErr(t('create_match.err_empty_server'))
       return
     }
     const id = String(matchId)
@@ -138,9 +138,7 @@ export function CreateMatchPage() {
     })
     if (partErr && partErr.code !== '23505' && !partErr.message.toLowerCase().includes('duplicate')) {
       setPending(false)
-      setErr(
-        `Match créé mais inscription organisateur impossible : ${partErr.message}. Exécute supabase/organisateur_auto_participation.sql sur ton projet.`,
-      )
+      setErr(t('create_match.err_org_participation', { message: partErr.message }))
       nav(`/matchs/${id}`)
       void supabase.functions
         .invoke('notify-match-nearby', { body: { match_id: id } })
@@ -162,16 +160,14 @@ export function CreateMatchPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Créer un match</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Renseigne la date, le lieu (idéalement via Google Places) et le tarif.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('create_match.title')}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t('create_match.subtitle')}</p>
       </div>
       <Card className="shadow-md ring-1 ring-border/80">
         <form onSubmit={submit} className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">{t('common.date')}</Label>
               <Input
                 id="date"
                 type="date"
@@ -182,7 +178,7 @@ export function CreateMatchPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="heure">Heure</Label>
+              <Label htmlFor="heure">{t('common.time')}</Label>
               <Input
                 id="heure"
                 type="time"
@@ -195,13 +191,13 @@ export function CreateMatchPage() {
           </div>
           <Separator />
           <div className="space-y-2">
-            <Label htmlFor="lieu">Lieu (Google Places)</Label>
+            <Label htmlFor="lieu">{t('create_match.place_label')}</Label>
             <Input
               ref={lieuInputRef}
               id="lieu"
               type="text"
               required
-              placeholder="Salle, stade, ville…"
+              placeholder={t('create_match.place_placeholder')}
               value={lieu}
               onChange={(e) => {
                 setLieu(e.target.value)
@@ -213,27 +209,24 @@ export function CreateMatchPage() {
               autoComplete="off"
               className="h-11"
             />
-            <p className="text-xs text-muted-foreground">
-              Choisis une <strong className="text-foreground">suggestion</strong> pour enregistrer GPS
-              (notifications à proximité).
-            </p>
+            <p className="text-xs text-muted-foreground">{t('create_match.place_hint')}</p>
             {(lieuNom || lieuAdresse || lieuLat != null) && (
               <dl className="mt-3 space-y-1 rounded-xl border border-border bg-muted/40 px-3 py-3 text-xs text-muted-foreground">
                 {lieuNom && (
                   <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 font-medium text-foreground/80">Nom</dt>
+                    <dt className="w-14 shrink-0 font-medium text-foreground/80">{t('common.name')}</dt>
                     <dd>{lieuNom}</dd>
                   </div>
                 )}
                 {lieuAdresse && (
                   <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 font-medium text-foreground/80">Adresse</dt>
+                    <dt className="w-14 shrink-0 font-medium text-foreground/80">{t('common.address')}</dt>
                     <dd>{lieuAdresse}</dd>
                   </div>
                 )}
                 {lieuLat != null && lieuLng != null && (
                   <div className="font-mono text-foreground/90">
-                    GPS : {lieuLat.toFixed(6)}, {lieuLng.toFixed(6)}
+                    {t('common.gps')}: {lieuLat.toFixed(6)}, {lieuLng.toFixed(6)}
                   </div>
                 )}
               </dl>
@@ -243,7 +236,7 @@ export function CreateMatchPage() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="niveau">Niveau requis</Label>
+            <Label htmlFor="niveau">{t('create_match.level_label')}</Label>
             <select
               id="niveau"
               value={niveau}
@@ -252,15 +245,15 @@ export function CreateMatchPage() {
             >
               {MATCH_NIVEAUX.map((n) => (
                 <option key={n} value={n}>
-                  {matchNiveauLabel(n)}
+                  {t(`levels.${n}`)}
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground">Indique le niveau attendu pour équilibrer la partie.</p>
+            <p className="text-xs text-muted-foreground">{t('create_match.level_help')}</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="prix">Prix par joueur (€)</Label>
+              <Label htmlFor="prix">{t('create_match.price_label')}</Label>
               <Input
                 id="prix"
                 type="text"
@@ -272,7 +265,7 @@ export function CreateMatchPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nbMax">Nombre max de joueurs</Label>
+              <Label htmlFor="nbMax">{t('create_match.max_players_label')}</Label>
               <Input
                 id="nbMax"
                 type="number"
@@ -283,12 +276,12 @@ export function CreateMatchPage() {
                 onChange={(e) => setNbMax(e.target.value)}
                 className="h-11"
               />
-              <p className="text-xs text-muted-foreground">Conseillé : 10.</p>
+              <p className="text-xs text-muted-foreground">{t('create_match.max_players_hint')}</p>
             </div>
           </div>
           {err && <p className="text-sm font-medium text-destructive">{err}</p>}
           <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-            {pending ? 'Création…' : 'Publier le match'}
+            {pending ? t('create_match.creating') : t('create_match.publish')}
           </Button>
         </form>
       </Card>

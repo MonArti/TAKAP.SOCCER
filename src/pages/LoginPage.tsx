@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const { signIn } = useAuth()
   const nav = useNavigate()
   const [searchParams] = useSearchParams()
@@ -32,17 +34,17 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">Connexion</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('auth.login_title')}</h1>
       <Card className="border-primary/15 ring-1 ring-primary/10">
         {justRegistered && (
           <p className="mb-4 rounded-lg border border-[rgba(0,230,118,0.25)] bg-[rgba(0,230,118,0.08)] px-3 py-2 text-sm text-primary">
-            Inscription enregistrée. Si une confirmation email est requise, valide-la puis connecte-toi.
+            {t('auth.just_registered')}
           </p>
         )}
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">
-              Email
+              {t('common.email')}
             </label>
             <input
               id="email"
@@ -56,7 +58,7 @@ export function LoginPage() {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
-              Mot de passe
+              {t('common.password')}
             </label>
             <input
               id="password"
@@ -70,13 +72,13 @@ export function LoginPage() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? 'Connexion…' : 'Se connecter'}
+            {pending ? t('auth.signing_in') : t('auth.sign_in')}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Pas encore de compte ?{' '}
+          {t('auth.no_account')}{' '}
           <Link to="/register" className="font-semibold text-primary hover:underline">
-            Inscription
+            {t('common.register')}
           </Link>
         </p>
       </Card>

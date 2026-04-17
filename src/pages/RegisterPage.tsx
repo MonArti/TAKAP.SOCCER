@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
 
 export function RegisterPage() {
+  const { t } = useTranslation()
   const { user, signUp } = useAuth()
   const nav = useNavigate()
   const [searchParams] = useSearchParams()
@@ -35,7 +37,7 @@ export function RegisterPage() {
     setError(null)
     setInfo(null)
     if (pseudo.trim().length < 2) {
-      setError('Le pseudo doit contenir au moins 2 caractères.')
+      setError(t('auth.pseudo_min_error'))
       return
     }
     setPending(true)
@@ -46,9 +48,7 @@ export function RegisterPage() {
       setError(err.message)
       return
     }
-    setInfo(
-      'Compte créé. Si la confirmation email est activée sur ton projet Supabase, vérifie ta boîte mail puis connecte-toi. Ton code parrain est enregistré automatiquement.',
-    )
+    setInfo(t('auth.account_created_info'))
     setTimeout(() => nav('/login?registered=1'), 4000)
   }
 
@@ -58,24 +58,23 @@ export function RegisterPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div className="text-center">
-        <div className="text-2xl font-black tracking-tight text-[#00E676]">Takap Soccer</div>
-        <p className="mt-2 text-sm text-muted-foreground">Crée ton compte et rejoins les matchs.</p>
+        <div className="text-2xl font-black tracking-tight text-[#00E676]">{t('brand.title')}</div>
+        <p className="mt-2 text-sm text-muted-foreground">{t('auth.register_tagline')}</p>
       </div>
 
       <Card className="border-primary/15 ring-1 ring-primary/10">
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Inscription</h1>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">{t('auth.register_title')}</h1>
 
         {refCode && (
           <p className="mt-4 rounded-lg border border-[rgba(0,230,118,0.25)] bg-[rgba(0,230,118,0.1)] px-3 py-2 text-sm text-[#E8F0E9]">
-            Tu t’inscris avec l’invitation d’un ami (code <strong className="font-mono text-[#00E676]">{refCode}</strong>
-            ).
+            {t('auth.ref_invite_banner', { code: refCode })}
           </p>
         )}
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
             <label htmlFor="pseudo" className="block text-sm font-medium text-muted-foreground">
-              Pseudo
+              {t('common.pseudo')}
             </label>
             <input
               id="pseudo"
@@ -85,12 +84,12 @@ export function RegisterPage() {
               value={pseudo}
               onChange={(e) => setPseudo(e.target.value)}
               className={field}
-              placeholder="ex. Kyllian10"
+              placeholder={t('auth.pseudo_placeholder')}
             />
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-muted-foreground">
-              Email
+              {t('common.email')}
             </label>
             <input
               id="email"
@@ -100,12 +99,12 @@ export function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={field}
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.email_placeholder')}
             />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
-              Mot de passe
+              {t('common.password')}
             </label>
             <input
               id="password"
@@ -117,11 +116,11 @@ export function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={field}
             />
-            <p className="mt-1 text-xs text-muted-foreground">Minimum 6 caractères.</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('auth.password_min_hint')}</p>
           </div>
           <div>
             <label htmlFor="parrain" className="block text-sm font-medium text-muted-foreground">
-              Code de parrainage (optionnel)
+              {t('auth.sponsor_code_label')}
             </label>
             <input
               id="parrain"
@@ -129,23 +128,21 @@ export function RegisterPage() {
               value={parrainCode}
               onChange={(e) => setParrainCode(e.target.value.toUpperCase())}
               className={field}
-              placeholder="ex. A1B2C3D4"
+              placeholder={t('auth.sponsor_placeholder')}
               autoComplete="off"
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Si un ami t’a partagé son code, saisis-le ici (identique au lien d’invitation).
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('auth.sponsor_code_help')}</p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           {info && <p className="text-sm text-primary">{info}</p>}
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? 'Création…' : 'Créer mon compte'}
+            {pending ? t('auth.creating_account') : t('auth.create_account')}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
-          Déjà inscrit ?{' '}
+          {t('auth.has_account')}{' '}
           <Link to="/login" className="font-semibold text-primary hover:underline">
-            Connexion
+            {t('auth.login_title')}
           </Link>
         </p>
       </Card>

@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { InscriptionRedirect } from '@/components/InscriptionRedirect'
 import { Layout } from '@/components/Layout'
@@ -20,10 +22,11 @@ import { InvitePage } from '@/pages/InvitePage'
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const { t } = useTranslation()
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-muted-foreground">
-        Chargement…
+        {t('app.loading_session')}
       </div>
     )
   }
@@ -31,7 +34,7 @@ function Protected({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-export default function App() {
+function AppRoutes() {
   return (
     <Layout>
       <Routes>
@@ -96,5 +99,19 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
+  )
+}
+
+export default function App() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center bg-[#0A0E0B] text-[#7A9180]">
+          Loading…
+        </div>
+      }
+    >
+      <AppRoutes />
+    </Suspense>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import { parseNoteMoyenne } from '@/lib/format'
@@ -37,6 +38,7 @@ function initials(pseudo: string) {
 }
 
 export function LeaderboardPanel() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('note')
   const [noteRows, setNoteRows] = useState<NoteRow[]>([])
@@ -109,7 +111,7 @@ export function LeaderboardPanel() {
       const pmap = new Map((profs ?? []).map((p) => [p.id as string, p.pseudo as string]))
       const rows: GoalAssistRow[] = sorted.map(([jid, v]) => ({
         id: jid,
-        pseudo: pmap.get(jid) ?? 'Joueur',
+        pseudo: pmap.get(jid) ?? t('common.player'),
         total: v.total,
         nb_matchs_stats: v.matches.size,
       }))
@@ -120,27 +122,27 @@ export function LeaderboardPanel() {
     return () => {
       cancelled = true
     }
-  }, [tab])
+  }, [tab, t])
 
   const tabHint =
     tab === 'note'
-      ? 'Par note moyenne (≥ 1 match)'
+      ? t('leaderboard.hint_note')
       : tab === 'buteur'
-        ? 'Total de buts (stats match enregistrées)'
-        : 'Total de passes décisives (stats match enregistrées)'
+        ? t('leaderboard.hint_scorer')
+        : t('leaderboard.hint_assist')
 
   const rowsForTab: (NoteRow | GoalAssistRow)[] =
     tab === 'note' ? noteRows : tab === 'buteur' ? goalRows : assistRows
 
   return (
     <section className="rounded-2xl border border-[rgba(0,230,118,0.12)] bg-[#1A211B] p-4 shadow-[0_12px_40px_-28px_rgba(0,0,0,0.9)]">
-      <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#00E676]">Top joueurs</h2>
+      <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[#00E676]">{t('leaderboard.title')}</h2>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {(
           [
-            ['note', 'Note'],
-            ['buteur', 'Buteur'],
-            ['passeur', 'Passeur'],
+            ['note', t('leaderboard.tab_note')],
+            ['buteur', t('leaderboard.tab_scorer')],
+            ['passeur', t('leaderboard.tab_assist')],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -159,25 +161,26 @@ export function LeaderboardPanel() {
         ))}
       </div>
       <p className="mt-2 text-[11px] text-[#7A9180]">{tabHint}</p>
-      {loading && <p className="mt-3 text-sm text-[#7A9180]">Chargement…</p>}
+      {loading && <p className="mt-3 text-sm text-[#7A9180]">{t('common.loading')}</p>}
       {err && <p className="mt-3 text-xs text-[#FF3B5C]">{err}</p>}
       {!loading && !err && rowsForTab.length === 0 && (
-        <p className="mt-3 text-sm text-[#7A9180]">Pas encore de données pour cet onglet.</p>
+        <p className="mt-3 text-sm text-[#7A9180]">{t('leaderboard.empty_tab')}</p>
       )}
       {!loading && rowsForTab.length > 0 && (
         <ol className="mt-4 space-y-2">
           {rowsForTab.map((r, i) => {
             const medal = medalDisplay(i)
             const isMe = user?.id === r.id
-            const rightLabel = tab === 'note' ? 'note' : tab === 'buteur' ? 'buts' : 'passes'
+            const rightLabel =
+              tab === 'note' ? t('leaderboard.label_note') : tab === 'buteur' ? t('leaderboard.label_goals') : t('leaderboard.label_assists')
             const rightValue =
               tab === 'note'
                 ? parseNoteMoyenne((r as NoteRow).note_moyenne).toFixed(1)
                 : String((r as GoalAssistRow).total)
             const subLine =
               tab === 'note'
-                ? `${(r as NoteRow).nb_matchs} match${(r as NoteRow).nb_matchs > 1 ? 's' : ''}`
-                : `${(r as GoalAssistRow).nb_matchs_stats} match${(r as GoalAssistRow).nb_matchs_stats > 1 ? 's' : ''} comptabilisé${(r as GoalAssistRow).nb_matchs_stats > 1 ? 's' : ''}`
+                ? t('leaderboard.matches_count', { count: (r as NoteRow).nb_matchs })
+                : t('leaderboard.stats_matches', { count: (r as GoalAssistRow).nb_matchs_stats })
             return (
               <li key={r.id}>
                 <Link
@@ -212,8 +215,8 @@ export function LeaderboardPanel() {
                     <p className="truncate text-sm font-semibold text-[#E8F0E9]">
                       {r.pseudo}
                       {isMe && (
-                        <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[#00E676]">
-                          · Moi
+                        <span className="ms-1.5 text-[10px] font-bold uppercase tracking-wide text-[#00E676]">
+                          · {t('common.me')}
                         </span>
                       )}
                     </p>
@@ -233,7 +236,7 @@ export function LeaderboardPanel() {
         to="/joueurs"
         className="mt-4 block text-center text-xs font-bold text-[#00E676] transition hover:underline"
       >
-        Voir tous les joueurs →
+        {t('leaderboard.see_all')}
       </Link>
     </section>
   )

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import type { MatchRow, NoteRow, ParticipationRow, ProfileRow } from '@/types/database'
 import { Card } from '@/components/Card'
-import { formatDateFr, formatHeure } from '@/lib/format'
+import { formatDateForApp, formatHeure, resolveUiLocale } from '@/lib/format'
 
 type Tab = 'matchs' | 'profils' | 'participations' | 'notes'
 
 export function AdminDashboardPage() {
+  const { t, i18n } = useTranslation()
+  const locale = resolveUiLocale(i18n.language)
   const { user, loading: authLoading, isAdmin, adminResolved } = useAuth()
   const [tab, setTab] = useState<Tab>('matchs')
   const [matchs, setMatchs] = useState<MatchRow[]>([])
@@ -44,20 +47,20 @@ export function AdminDashboardPage() {
 
   useEffect(() => {
     if (!isAdmin || !user) return
-    const interval = setInterval(() => setTick((t) => t + 1), 12_000)
+    const interval = setInterval(() => setTick((x) => x + 1), 12_000)
     const channel = supabase
       .channel('admin-dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matchs' }, () =>
-        setTick((t) => t + 1),
+        setTick((x) => x + 1),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'participations' }, () =>
-        setTick((t) => t + 1),
+        setTick((x) => x + 1),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () =>
-        setTick((t) => t + 1),
+        setTick((x) => x + 1),
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, () =>
-        setTick((t) => t + 1),
+        setTick((x) => x + 1),
       )
       .subscribe()
     return () => {
@@ -68,7 +71,7 @@ export function AdminDashboardPage() {
 
   if (authLoading || (user && !adminResolved)) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-zinc-500">Chargement…</div>
+      <div className="flex min-h-[40vh] items-center justify-center text-zinc-500">{t('admin.loading')}</div>
     )
   }
   if (!user) return <Navigate to="/login" replace />
@@ -92,17 +95,15 @@ export function AdminDashboardPage() {
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Admin — supervision</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Lecture seule. Mise à jour ~12 s ou en temps réel si Realtime est activé sur Supabase.
-          </p>
+          <h1 className="text-2xl font-bold text-zinc-900">{t('admin.title')}</h1>
+          <p className="mt-1 text-sm text-zinc-500">{t('admin.subtitle')}</p>
         </div>
         <button
           type="button"
-          onClick={() => setTick((t) => t + 1)}
+          onClick={() => setTick((x) => x + 1)}
           className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         >
-          Actualiser
+          {t('admin.refresh')}
         </button>
       </div>
 
@@ -111,10 +112,10 @@ export function AdminDashboardPage() {
       )}
 
       <div className="flex flex-wrap gap-2">
-        {tabBtn('matchs', `Matchs (${matchs.length})`)}
-        {tabBtn('profils', `Profils (${profils.length})`)}
-        {tabBtn('participations', `Inscriptions (${parts.length})`)}
-        {tabBtn('notes', `Notes (${notes.length})`)}
+        {tabBtn('matchs', t('admin.tab_matchs', { count: matchs.length }))}
+        {tabBtn('profils', t('admin.tab_profils', { count: profils.length }))}
+        {tabBtn('participations', t('admin.tab_participations', { count: parts.length }))}
+        {tabBtn('notes', t('admin.tab_notes', { count: notes.length }))}
       </div>
 
       {tab === 'matchs' && (
@@ -122,11 +123,11 @@ export function AdminDashboardPage() {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Statut</th>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Lieu</th>
-                <th className="px-3 py-2">Org.</th>
-                <th className="px-3 py-2">Places</th>
+                <th className="px-3 py-2">{t('admin.col_status')}</th>
+                <th className="px-3 py-2">{t('admin.col_date')}</th>
+                <th className="px-3 py-2">{t('admin.col_venue')}</th>
+                <th className="px-3 py-2">{t('admin.col_org')}</th>
+                <th className="px-3 py-2">{t('admin.col_places')}</th>
               </tr>
             </thead>
             <tbody>
@@ -134,7 +135,7 @@ export function AdminDashboardPage() {
                 <tr key={m.id} className="border-b border-zinc-100">
                   <td className="px-3 py-2 font-medium">{m.statut}</td>
                   <td className="px-3 py-2">
-                    {formatDateFr(m.date_match)} {formatHeure(m.heure_match)}
+                    {formatDateForApp(m.date_match)} {formatHeure(m.heure_match)}
                   </td>
                   <td className="px-3 py-2 text-zinc-600">{m.lieu}</td>
                   <td className="px-3 py-2 font-mono text-xs text-zinc-500">{m.organisateur_id.slice(0, 8)}…</td>
@@ -151,11 +152,11 @@ export function AdminDashboardPage() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Pseudo</th>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Rôle</th>
-                <th className="px-3 py-2">Matchs</th>
-                <th className="px-3 py-2">Note</th>
+                <th className="px-3 py-2">{t('admin.col_pseudo')}</th>
+                <th className="px-3 py-2">{t('admin.col_email')}</th>
+                <th className="px-3 py-2">{t('admin.col_role')}</th>
+                <th className="px-3 py-2">{t('admin.col_matches')}</th>
+                <th className="px-3 py-2">{t('admin.col_rating')}</th>
               </tr>
             </thead>
             <tbody>
@@ -178,10 +179,10 @@ export function AdminDashboardPage() {
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Match</th>
-                <th className="px-3 py-2">Joueur</th>
-                <th className="px-3 py-2">Payé</th>
-                <th className="px-3 py-2">Créé</th>
+                <th className="px-3 py-2">{t('admin.col_match')}</th>
+                <th className="px-3 py-2">{t('admin.col_player')}</th>
+                <th className="px-3 py-2">{t('admin.col_paid')}</th>
+                <th className="px-3 py-2">{t('admin.col_created')}</th>
               </tr>
             </thead>
             <tbody>
@@ -189,8 +190,10 @@ export function AdminDashboardPage() {
                 <tr key={x.id} className="border-b border-zinc-100">
                   <td className="px-3 py-2 font-mono text-xs">{x.match_id.slice(0, 8)}…</td>
                   <td className="px-3 py-2 font-mono text-xs">{x.joueur_id.slice(0, 8)}…</td>
-                  <td className="px-3 py-2">{x.a_paye ? 'oui' : 'non'}</td>
-                  <td className="px-3 py-2 text-zinc-500">{new Date(x.created_at).toLocaleString('fr-FR')}</td>
+                  <td className="px-3 py-2">{x.a_paye ? t('admin.yes') : t('admin.no')}</td>
+                  <td className="px-3 py-2 text-zinc-500">
+                    {new Date(x.created_at).toLocaleString(locale)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -203,10 +206,10 @@ export function AdminDashboardPage() {
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Match</th>
-                <th className="px-3 py-2">Donneur</th>
-                <th className="px-3 py-2">Receveur</th>
-                <th className="px-3 py-2">Note</th>
+                <th className="px-3 py-2">{t('admin.col_match')}</th>
+                <th className="px-3 py-2">{t('admin.col_giver')}</th>
+                <th className="px-3 py-2">{t('admin.col_receiver')}</th>
+                <th className="px-3 py-2">{t('admin.col_rating')}</th>
               </tr>
             </thead>
             <tbody>

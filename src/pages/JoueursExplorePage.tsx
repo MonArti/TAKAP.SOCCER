@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { Card } from '@/components/Card'
 import { Button } from '@/components/Button'
@@ -7,11 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import {
-  niveauIndicatifFromNote,
-  normalizeSearch,
-  parseNoteMoyenne,
-} from '@/lib/format'
+import { normalizeSearch, parseNoteMoyenne, ratingBandFromNote } from '@/lib/format'
 import type { ProfileRow } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -90,6 +87,7 @@ function filterExplorerRows(
 }
 
 export function JoueursExplorePage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [rows, setRows] = useState<ProfileListRow[]>([])
   const [err, setErr] = useState<string | null>(null)
@@ -185,23 +183,22 @@ export function JoueursExplorePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Joueurs</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Recherche, filtres et comparaison. Les profils <strong className="text-foreground">Exemple</strong>{' '}
-          viennent du même jeu de données que sur l’accueil.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('players.title')}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{t('players.intro')}</p>
       </div>
 
       {community.avgNote != null && (
         <Card className="border-border bg-muted/40 text-sm text-muted-foreground shadow-none">
           <p>
-            <strong className="text-foreground">Moyennes communauté (réel)</strong> — joueurs avec au moins 1
-            match terminé : note ~{community.avgNote.toFixed(2)}/5 · {community.avgNb} matchs en moyenne.
+            {t('players.community_avg', {
+              note: community.avgNote.toFixed(2),
+              matchs: community.avgNb,
+            })}
           </p>
         </Card>
       )}
 
-      {loading && <p className="text-sm font-medium text-muted-foreground">Chargement…</p>}
+      {loading && <p className="text-sm font-medium text-muted-foreground">{t('common.loading')}</p>}
       {err && (
         <Card className="border-destructive/30 bg-destructive/5 text-sm text-destructive">{err}</Card>
       )}
@@ -216,27 +213,27 @@ export function JoueursExplorePage() {
                 onChange={(e) => setIncludeDemo(e.target.checked)}
                 className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
               />
-              Inclure les profils d’exemple Takap
+              {t('players.include_demo')}
             </label>
             <Separator />
 
             <div className="space-y-2">
               <Label htmlFor="joueurs-q" className="sr-only">
-                Rechercher un joueur
+                {t('players.search_label')}
               </Label>
               <Input
                 id="joueurs-q"
                 type="search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Pseudo, prénom (exemple), ville…"
+                placeholder={t('players.search_placeholder')}
                 className="h-11"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="j-ville" className="text-xs text-muted-foreground">
-                Ville (exemples ; pas encore en base pour les réels)
+                {t('players.city_label')}
               </Label>
               <select
                 id="j-ville"
@@ -244,7 +241,7 @@ export function JoueursExplorePage() {
                 onChange={(e) => setVille(e.target.value)}
                 className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <option value="">Toutes</option>
+                <option value="">{t('players.all_cities')}</option>
                 {villesDemo.map((v) => (
                   <option key={v} value={v}>
                     {v}
@@ -256,7 +253,7 @@ export function JoueursExplorePage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div className="space-y-2">
                 <Label htmlFor="j-note-min" className="text-xs text-muted-foreground">
-                  Note min
+                  {t('players.note_min')}
                 </Label>
                 <Input
                   id="j-note-min"
@@ -273,7 +270,7 @@ export function JoueursExplorePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="j-note-max" className="text-xs text-muted-foreground">
-                  Note max
+                  {t('players.note_max')}
                 </Label>
                 <Input
                   id="j-note-max"
@@ -289,7 +286,7 @@ export function JoueursExplorePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="j-matchs-min" className="text-xs text-muted-foreground">
-                  Matchs min.
+                  {t('players.matches_min')}
                 </Label>
                 <Input
                   id="j-matchs-min"
@@ -303,7 +300,7 @@ export function JoueursExplorePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="j-age-min" className="text-xs text-muted-foreground">
-                  Âge min (réels)
+                  {t('players.age_min_real')}
                 </Label>
                 <Input
                   id="j-age-min"
@@ -318,7 +315,7 @@ export function JoueursExplorePage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="j-age-max" className="text-xs text-muted-foreground">
-                  Âge max (réels)
+                  {t('players.age_max_real')}
                 </Label>
                 <Input
                   id="j-age-max"
@@ -335,31 +332,32 @@ export function JoueursExplorePage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Button type="button" variant="secondary" onClick={resetFiltres} className="text-xs">
-                Réinitialiser
+                {t('common.reset')}
               </Button>
               <span className="text-xs text-muted-foreground">
-                {filtered.length} résultat{filtered.length !== 1 ? 's' : ''} sur {rows.length} réel
-                {rows.length !== 1 ? 's' : ''}
-                {includeDemo ? ` + ${nDemo} exemple${nDemo > 1 ? 's' : ''}` : ''}
-                {compareKeys.length > 0 && ` · ${compareKeys.length} en comparaison`}
+                {t('players.results_of', { filtered: filtered.length, real: rows.length })}
+                {includeDemo && nDemo > 0 ? ` ${t('players.results_demo_extra', { count: nDemo })}` : ''}
+                {compareKeys.length > 0
+                  ? ` ${t('players.results_compare_extra', { count: compareKeys.length })}`
+                  : ''}
               </span>
             </div>
           </Card>
 
           {compareRows.length >= 2 && (
             <Card className="border-primary/20 bg-primary/5 shadow-md">
-              <h2 className="text-base font-semibold text-foreground">Comparaison</h2>
+              <h2 className="text-base font-semibold text-foreground">{t('players.compare_title')}</h2>
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full min-w-[380px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground">
-                      <th className="pb-2 pr-2 font-medium">Joueur</th>
-                      <th className="pb-2 pr-2 font-medium">Ville</th>
-                      <th className="pb-2 pr-2 font-medium">Note</th>
-                      <th className="pb-2 pr-2 font-medium">Matchs</th>
-                      <th className="pb-2 pr-2 font-medium">Âge</th>
-                      <th className="pb-2 pr-2 font-medium">Taille</th>
-                      <th className="pb-2 font-medium">Niveau</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_player')}</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_city')}</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_rating')}</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_matches')}</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_age')}</th>
+                      <th className="pb-2 pr-2 font-medium">{t('players.col_height')}</th>
+                      <th className="pb-2 font-medium">{t('players.col_level')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -375,16 +373,18 @@ export function JoueursExplorePage() {
                               >
                                 {j.prenom}
                               </Link>
-                              <span className="ml-1 text-[10px] font-bold uppercase text-amber-700">
-                                ex.
+                              <span className="ms-1 text-[10px] font-bold uppercase text-amber-700">
+                                {t('players.demo_short')}
                               </span>
                             </td>
                             <td className="py-2 pr-2">{j.ville}</td>
                             <td className="py-2 pr-2 tabular-nums">{j.note.toFixed(1)}</td>
                             <td className="py-2 pr-2 tabular-nums">{j.matchs}</td>
-                            <td className="py-2 pr-2">—</td>
-                            <td className="py-2 pr-2">—</td>
-                            <td className="py-2 text-muted-foreground">{niveauIndicatifFromNote(j.note)}</td>
+                            <td className="py-2 pr-2">{t('common.dash')}</td>
+                            <td className="py-2 pr-2">{t('common.dash')}</td>
+                            <td className="py-2 text-muted-foreground">
+                              {t(`rating_bands.${ratingBandFromNote(j.note)}`)}
+                            </td>
                           </tr>
                         )
                       }
@@ -397,14 +397,16 @@ export function JoueursExplorePage() {
                               {p.pseudo}
                             </Link>
                           </td>
-                          <td className="py-2 pr-2 text-muted-foreground">—</td>
+                          <td className="py-2 pr-2 text-muted-foreground">{t('common.dash')}</td>
                           <td className="py-2 pr-2 tabular-nums">{note.toFixed(2)}</td>
                           <td className="py-2 pr-2 tabular-nums">{p.nb_matchs}</td>
                           <td className="py-2 pr-2">{p.age ?? '—'}</td>
                           <td className="py-2 pr-2">
                             {p.taille != null ? `${p.taille} cm` : '—'}
                           </td>
-                          <td className="py-2 text-muted-foreground">{niveauIndicatifFromNote(note)}</td>
+                          <td className="py-2 text-muted-foreground">
+                            {t(`rating_bands.${ratingBandFromNote(note)}`)}
+                          </td>
                         </tr>
                       )
                     })}
@@ -416,7 +418,7 @@ export function JoueursExplorePage() {
                 onClick={() => setCompareKeys([])}
                 className="mt-3 text-xs font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
               >
-                Vider la sélection
+                {t('players.clear_selection')}
               </button>
             </Card>
           )}
@@ -442,11 +444,15 @@ export function JoueursExplorePage() {
                           variant="secondary"
                           className="ml-2 rounded-md bg-amber-100 text-[10px] font-bold uppercase text-amber-900"
                         >
-                          Exemple
+                          {t('players.badge_example')}
                         </Badge>
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {j.ville} · {j.note.toFixed(1)}★ · {j.matchs} matchs (fictif)
+                        {t('players.demo_subline', {
+                          city: j.ville,
+                          rating: j.note.toFixed(1),
+                          matches: j.matchs,
+                        })}
                       </span>
                     </Link>
                     <label className="flex shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -456,7 +462,7 @@ export function JoueursExplorePage() {
                         onChange={() => toggleCompare(r)}
                         className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
                       />
-                      Comparer
+                      {t('players.compare_checkbox')}
                     </label>
                   </li>
                 )
@@ -476,13 +482,13 @@ export function JoueursExplorePage() {
                     <span className="text-sm font-medium text-foreground">
                       {p.pseudo}
                       {isSelf && (
-                        <span className="ml-2 text-xs font-normal text-primary">(vous)</span>
+                        <span className="ms-2 text-xs font-normal text-primary">{t('players.you_label')}</span>
                       )}
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      {note.toFixed(2)}★ · {p.nb_matchs} matchs
-                      {p.age != null && ` · ${p.age} ans`}
-                      {p.taille != null && ` · ${p.taille} cm`}
+                      {note.toFixed(2)}★ · {p.nb_matchs} {t('players.matches_word')}
+                      {p.age != null && ` · ${t('players.years_old', { age: p.age })}`}
+                      {p.taille != null && ` · ${t('players.height_cm_value', { h: p.taille })}`}
                     </span>
                   </Link>
                   <label
@@ -497,7 +503,7 @@ export function JoueursExplorePage() {
                       onChange={() => toggleCompare(r)}
                       className="size-4 rounded border-input text-primary focus:ring-2 focus:ring-ring disabled:opacity-50"
                     />
-                    {isSelf ? '—' : 'Comparer'}
+                    {isSelf ? t('common.dash') : t('players.compare_checkbox')}
                   </label>
                 </li>
               )
@@ -505,7 +511,7 @@ export function JoueursExplorePage() {
           </ul>
 
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground">Aucun profil ne correspond à ces critères.</p>
+            <p className="text-sm text-muted-foreground">{t('players.no_results')}</p>
           )}
         </>
       )}

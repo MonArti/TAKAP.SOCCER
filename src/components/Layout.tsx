@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Bell, Compass, Gift, LayoutGrid, Settings, Shield, Trophy, User, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { IosPushHintBanner } from '@/components/IosPushHintBanner'
+import { LanguageSelector } from '@/components/LanguageSelector'
 import { LeaderboardPanel } from '@/components/LeaderboardPanel'
 import { NotificationsPanel } from '@/components/NotificationsPanel'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
@@ -24,6 +26,7 @@ type ProfileStats = {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   const { user, signOut, isAdmin, adminResolved } = useAuth()
   const { unreadCount } = useNotifications()
   const [stats, setStats] = useState<ProfileStats | null>(null)
@@ -59,9 +62,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           role="alert"
           className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-100"
         >
-          <strong>Configuration Supabase manquante.</strong> Ajoute{' '}
-          <code className="rounded bg-amber-500/20 px-1">VITE_SUPABASE_URL</code> et{' '}
-          <code className="rounded bg-amber-500/20 px-1">VITE_SUPABASE_ANON_KEY</code>, puis redeploy.
+          <strong>{t('layout.supabase_missing')}</strong> {t('layout.supabase_hint')}
         </div>
       )}
 
@@ -82,14 +83,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 TS
               </span>
               <div className="min-w-0">
-                <span className="block truncate font-bold tracking-tight text-[#E8F0E9]">Takap Soccer</span>
-                <span className="block truncate text-[11px] font-medium text-[#7A9180]">Foot amateur</span>
+                <span className="block truncate font-bold tracking-tight text-[#E8F0E9]">{t('brand.title')}</span>
+                <span className="block truncate text-[11px] font-medium text-[#7A9180]">{t('brand.tagline')}</span>
               </div>
             </Link>
             {user && (
               <div
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-[rgba(0,230,118,0.2)] bg-[#1A211B] px-2.5 py-1.5"
-                title="Notifications non lues"
+                title={t('nav.unread_notifications_title')}
               >
                 <Bell className="size-4 text-[#00E676]" aria-hidden />
                 {unreadCount > 0 ? (
@@ -106,35 +107,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:flex-col lg:overflow-visible lg:px-4">
             <NavLink to="/mes-matchs" className={sideNavClass}>
               <LayoutGrid className="size-4 shrink-0 opacity-90" aria-hidden />
-              Mes matchs
+              {t('nav.my_matches')}
             </NavLink>
             <NavLink to="/" className={sideNavClass} end>
               <Compass className="size-4 shrink-0 opacity-90" aria-hidden />
-              Explorer
+              {t('nav.explore')}
             </NavLink>
             <NavLink to="/joueurs" className={sideNavClass}>
               <Trophy className="size-4 shrink-0 opacity-90" aria-hidden />
-              Classements
+              {t('nav.rankings')}
             </NavLink>
             <NavLink to="/demo" className={sideNavClass}>
               <Users className="size-4 shrink-0 opacity-90" aria-hidden />
-              Équipes
+              {t('nav.teams')}
             </NavLink>
             <NavLink to="/profil" className={sideNavClass}>
               <User className="size-4 shrink-0 opacity-90" aria-hidden />
-              Mon profil
+              {t('nav.my_profile')}
             </NavLink>
             <NavLink to="/inviter" className={sideNavClass}>
               <Gift className="size-4 shrink-0 opacity-90" aria-hidden />
-              Inviter des amis
+              {t('nav.invite_friends')}
             </NavLink>
             <NavLink to="/profil" className={sideNavClass}>
               <Settings className="size-4 shrink-0 opacity-90" aria-hidden />
-              Paramètres
+              {t('nav.settings')}
             </NavLink>
           </nav>
 
           <div className="px-4 pb-3">
+            <LanguageSelector className="mb-3" />
             <Link
               to="/matchs/nouveau"
               className={cn(
@@ -142,7 +144,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 'bg-[#00E676] text-[#0A0E0B] shadow-[0_0_28px_-8px_rgba(0,230,118,0.8)] transition hover:brightness-110',
               )}
             >
-              Créer un match
+              {t('nav.create_match')}
             </Link>
           </div>
 
@@ -160,7 +162,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 }
               >
                 <Shield className="size-4 shrink-0" aria-hidden />
-                Admin
+                {t('nav.admin')}
               </NavLink>
             </div>
           )}
@@ -169,25 +171,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {user ? (
               <>
                 <div className="rounded-2xl border border-[rgba(0,230,118,0.12)] bg-[#1A211B] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#00E676]">Tes stats</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#00E676]">{t('nav.your_stats')}</p>
                   <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-2.5 text-xs">
                     <div>
-                      <dt className="text-[#7A9180]">Matchs joués</dt>
-                      <dd className="font-bold tabular-nums text-[#E8F0E9]">{stats?.nb_matchs ?? '—'}</dd>
+                      <dt className="text-[#7A9180]">{t('nav.matches_played')}</dt>
+                      <dd className="font-bold tabular-nums text-[#E8F0E9]">{stats?.nb_matchs ?? t('common.dash')}</dd>
                     </div>
                     <div>
-                      <dt className="text-[#7A9180]">Buts</dt>
-                      <dd className="font-bold tabular-nums text-[#7A9180]">—</dd>
+                      <dt className="text-[#7A9180]">{t('nav.goals_sidebar')}</dt>
+                      <dd className="font-bold tabular-nums text-[#7A9180]">{t('common.dash')}</dd>
                     </div>
                     <div>
-                      <dt className="text-[#7A9180]">Note moy.</dt>
+                      <dt className="text-[#7A9180]">{t('nav.avg_rating_short')}</dt>
                       <dd className="font-bold tabular-nums text-[#00E676]">
-                        {stats != null ? stats.note_moyenne.toFixed(1) : '—'}
+                        {stats != null ? stats.note_moyenne.toFixed(1) : t('common.dash')}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[#7A9180]">Victoires</dt>
-                      <dd className="font-bold tabular-nums text-[#7A9180]">—</dd>
+                      <dt className="text-[#7A9180]">{t('nav.wins')}</dt>
+                      <dd className="font-bold tabular-nums text-[#7A9180]">{t('common.dash')}</dd>
                     </div>
                   </dl>
                 </div>
@@ -196,7 +198,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   onClick={() => void signOut()}
                   className="flex w-full items-center justify-center rounded-xl border border-[rgba(0,230,118,0.15)] py-2.5 text-sm font-semibold text-[#7A9180] transition hover:border-[rgba(0,230,118,0.3)] hover:text-[#E8F0E9]"
                 >
-                  Déconnexion
+                  {t('common.logout')}
                 </button>
               </>
             ) : (
@@ -205,13 +207,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   to="/login"
                   className="flex h-11 items-center justify-center rounded-xl border border-[rgba(0,230,118,0.2)] text-sm font-semibold text-[#E8F0E9] transition hover:bg-[#1A211B]"
                 >
-                  Connexion
+                  {t('common.login')}
                 </NavLink>
                 <NavLink
                   to="/register"
                   className="flex h-11 items-center justify-center rounded-xl bg-[#00E676] text-sm font-bold text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] transition hover:brightness-110"
                 >
-                  Inscription
+                  {t('common.register')}
                 </NavLink>
               </div>
             )}

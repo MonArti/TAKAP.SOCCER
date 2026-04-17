@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { euros } from '@/lib/format'
+import { eurosForApp } from '@/lib/format'
 
 export type MatchCardStatus = 'ouvert' | 'complet' | 'aujourdhui'
 
@@ -23,7 +25,7 @@ function initialsFromName(name: string) {
   return t.slice(0, 2).toUpperCase()
 }
 
-function StatusBadge({ status }: { status: MatchCardStatus }) {
+function StatusBadge({ status, t }: { status: MatchCardStatus; t: TFunction }) {
   if (status === 'complet') {
     return (
       <span
@@ -32,7 +34,7 @@ function StatusBadge({ status }: { status: MatchCardStatus }) {
           'border-[#FF3B5C]/45 bg-[#FF3B5C]/12 text-[#FF3B5C]',
         )}
       >
-        Complet
+        {t('match_card.status_full')}
       </span>
     )
   }
@@ -44,7 +46,7 @@ function StatusBadge({ status }: { status: MatchCardStatus }) {
           'border-[#FFD600]/45 bg-[#FFD600]/12 text-[#FFD600]',
         )}
       >
-        Aujourd&apos;hui
+        {t('match_card.status_today')}
       </span>
     )
   }
@@ -55,7 +57,7 @@ function StatusBadge({ status }: { status: MatchCardStatus }) {
         'border-[#00E676]/45 bg-[#00E676]/14 text-[#00E676]',
       )}
     >
-      Ouvert
+      {t('match_card.status_open')}
     </span>
   )
 }
@@ -64,14 +66,16 @@ function AvatarStack({
   leaderName,
   nbInscrits,
   nbMax,
+  t,
 }: {
   leaderName: string
   nbInscrits: number
   nbMax: number
+  t: TFunction
 }) {
   const total = Math.max(0, Math.min(nbInscrits, nbMax))
   if (total === 0) {
-    return <p className="text-xs text-[#7A9180]">Aucun joueur inscrit — sois le premier.</p>
+    return <p className="text-xs text-[#7A9180]">{t('common.no_players_yet')}</p>
   }
   const cap = 8
   const shown = Math.min(total, cap)
@@ -136,7 +140,11 @@ export function MatchCard({
   status,
   niveauLabel,
 }: MatchCardProps) {
-  const title = `${nbMax} VS ${nbMax} — ${venueTitle.toUpperCase()}`
+  const { t } = useTranslation()
+  const title = t('match_card.title_template', {
+    nbMax,
+    venue: venueTitle.toUpperCase(),
+  })
   const ratio = `${nbInscrits}/${nbMax}`
 
   return (
@@ -151,10 +159,10 @@ export function MatchCard({
       <article>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge status={status} />
+          <StatusBadge status={status} t={t} />
           {variant === 'demo' && (
             <span className="rounded-md border border-[#FFD600]/40 bg-[#FFD600]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FFD600]">
-              Exemple
+              {t('match_card.demo_badge')}
             </span>
           )}
           {niveauLabel && (
@@ -175,20 +183,20 @@ export function MatchCard({
         <span>{lieuPin}</span>
       </p>
       <p className="mt-1 text-[11px] text-[#7A9180]">
-        Organisateur · <span className="font-medium text-[#E8F0E9]/85">{organizerDisplay}</span>
+        {t('common.organizer_line', { name: organizerDisplay })}
       </p>
 
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <AvatarStack leaderName={organizerDisplay} nbInscrits={nbInscrits} nbMax={nbMax} />
+        <AvatarStack leaderName={organizerDisplay} nbInscrits={nbInscrits} nbMax={nbMax} t={t} />
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
-          <span className="text-right text-sm font-semibold text-[#00E676]">{euros(Number(prix))}</span>
+          <span className="text-right text-sm font-semibold text-[#00E676]">{eurosForApp(Number(prix))}</span>
           <span
             className={cn(
               'inline-flex h-11 items-center justify-center rounded-xl px-6 text-sm font-bold',
               'bg-[#00E676] text-[#0A0E0B] shadow-[0_0_24px_-8px_rgba(0,230,118,0.75)] transition group-hover:brightness-110',
             )}
           >
-            Rejoindre
+            {t('match_card.join')}
           </span>
         </div>
       </div>

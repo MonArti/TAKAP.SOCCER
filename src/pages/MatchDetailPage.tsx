@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import type { MatchRow, NoteRow, ParticipationRow, ProfileRow, StatsMatchJoueurRow } from '@/types/database'
@@ -10,8 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { StarRatingInput } from '@/components/StarRatingInput'
-import { euros, formatDateFr, formatHeure, isMatchDayPassedOrToday } from '@/lib/format'
-import { matchNiveauLabel, type MatchNiveau } from '@/lib/match-niveau'
+import { eurosForApp, formatDateForApp, formatHeure, isMatchDayPassedOrToday } from '@/lib/format'
+import type { MatchNiveau } from '@/lib/match-niveau'
 import { ChatBox } from '@/components/ChatBox'
 
 type Part = ParticipationRow & { profile: Pick<ProfileRow, 'id' | 'pseudo'> }
@@ -19,6 +20,7 @@ type Part = ParticipationRow & { profile: Pick<ProfileRow, 'id' | 'pseudo'> }
 type StatsDraft = { buts: number; passes: number; jaunes: number; rouges: number }
 
 export function MatchDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const [match, setMatch] = useState<MatchRow | null>(null)
@@ -41,9 +43,14 @@ export function MatchDetailPage() {
   const [statsErr, setStatsErr] = useState<string | null>(null)
   /** Brouillon des notes (enregistré dans la table `notes` au clic sur « Valider les notes »). */
   const [draftNotes, setDraftNotes] = useState<Record<string, number>>({})
+  /** Évite de remettre loading=true quand seul `user` change (session / refresh) — ça provoquait un écran quasi vide et un clignotement. */
+  const routeIdRef = useRef<string | undefined>(undefined)
 
   const load = useCallback(async () => {
-    if (!id) return
+    if (!id) {
+      setLoading(false)
+      return
+    }
     setErr(null)
     const { data: m, error: e1 } = await supabase.from('matchs').select('*').eq('id', id).maybeSingle()
     if (e1) {
@@ -74,10 +81,10 @@ export function MatchDetailPage() {
     setParts(
       (pList ?? []).map((p) => ({
         ...(p as ParticipationRow),
-        profile: pmap.get(p.joueur_id) ?? { id: p.joueur_id, pseudo: 'Joueur' },
+        profile: pmap.get(p.joueur_id) ?? { id: p.joueur_id, pseudo: t('common.player') },
       })),
     )
-    setOrgPseudo((org as ProfileRow | null)?.pseudo ?? 'Organisateur')
+    setOrgPseudo((org as ProfileRow | null)?.pseudo ?? t('common.organizer_fallback'))
 
     if (user && matchRow.statut === 'termine') {
       const { data: notes } = await supabase
@@ -97,12 +104,16 @@ export function MatchDetailPage() {
       setMatchStatsRows([])
     }
     setLoading(false)
-  }, [id, user])
+  }, [id, user, t])
 
   useEffect(() => {
-    setLoading(true)
+    const routeChanged = routeIdRef.current !== id
+    routeIdRef.current = id
+    if (routeChanged) {
+      setLoading(true)
+    }
     void load()
-  }, [load])
+  }, [load, id])
 
   const excludedFromInvite = useMemo(() => {
     const s = new Set(parts.map((p) => p.joueur_id))
@@ -192,10 +203,10 @@ export function MatchDetailPage() {
     })
     setActionPending(false)
     if (error) {
-      setErr(error.message.includes('duplicate') ? 'Tu es déjà inscrit à ce match.' : error.message)
+      setErr(error.message.includes('duplicate') ? t('match_detail.err_already_in') : error.message)
       return
     }
-    setMsg('Place réservée (paiement simulé : non requis en V1).')
+    setMsg(t('match_detail.msg_reserved'))
     void load()
   }
 
@@ -238,13 +249,13 @@ export function MatchDetailPage() {
     setInviteBusy(false)
     if (error) {
       if (error.message.includes('duplicate') || error.code === '23505') {
-        setInviteErr('Une invitation existe déjà pour ce joueur et ce match.')
+        setInviteErr(t('match_detail.err_invite_dup'))
       } else {
         setInviteErr(error.message)
       }
       return
     }
-    setInviteMsg('Invitation envoyée : le joueur reçoit une notification avec un rappel — il doit cliquer sur « Rejoindre » pour s’inscrire (aucune place réservée).')
+    setInviteMsg(t('match_detail.msg_invite_sent'))
     setInviteHits([])
     setInviteQuery('')
   }
@@ -260,7 +271,7 @@ export function MatchDetailPage() {
       setErr(error.message)
       return
     }
-    setMsg('Match marqué comme terminé. Les joueurs peuvent se noter.')
+    setMsg(t('match_detail.msg_match_done'))
     void load()
   }
 
@@ -288,7 +299,7 @@ export function MatchDetailPage() {
       setStatsErr(error.message)
       return
     }
-    setStatsMsg('Statistiques enregistrées.')
+    setStatsMsg(t('match_detail.msg_stats_saved'))
     const { data: st } = await supabase.from('stats_match_joueur').select('*').eq('match_id', id)
     setMatchStatsRows((st ?? []) as StatsMatchJoueurRow[])
   }
@@ -312,7 +323,7 @@ export function MatchDetailPage() {
       .filter((r): r is NonNullable<typeof r> => r != null)
 
     if (rows.length === 0) {
-      setErr('Sélectionne au moins une note (1 à 5 étoiles) pour un joueur.')
+      setErr(t('match_detail.err_notes_min'))
       setActionPending(false)
       return
     }
@@ -325,7 +336,7 @@ export function MatchDetailPage() {
       setErr(error.message)
       return
     }
-    setMsg('Notes enregistrées !')
+    setMsg(t('match_detail.msg_notes_saved'))
     const { data: notes } = await supabase
       .from('notes')
       .select('*')
@@ -334,13 +345,22 @@ export function MatchDetailPage() {
     setMyNotes((notes ?? []) as NoteRow[])
   }
 
-  if (loading) return <p className="text-sm font-medium text-muted-foreground">Chargement…</p>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Card className="border-[rgba(0,230,118,0.12)] bg-[#1A211B]">
+          <p className="text-sm font-medium text-[#E8F0E9]">{t('match_detail.loading_title')}</p>
+          <p className="mt-2 text-xs text-[#7A9180]">{t('match_detail.loading_sub')}</p>
+        </Card>
+      </div>
+    )
+  }
   if (!match) {
     return (
       <Card>
-        <p className="text-foreground">Match introuvable ou inaccessible.</p>
+        <p className="text-foreground">{t('match_detail.not_found')}</p>
         <Link to="/" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-          Retour
+          {t('common.back')}
         </Link>
       </Card>
     )
@@ -349,7 +369,7 @@ export function MatchDetailPage() {
   return (
     <div className="space-y-8">
       <Link to="/" className="text-sm font-semibold text-primary hover:underline">
-        ← Matchs ouverts
+        {t('match_detail.back_open')}
       </Link>
 
       <Card className="shadow-md ring-1 ring-border/80">
@@ -360,18 +380,18 @@ export function MatchDetailPage() {
                 variant={match.statut === 'ouvert' ? 'default' : 'secondary'}
                 className="rounded-full px-2.5 font-semibold"
               >
-                {match.statut === 'ouvert' ? 'Ouvert' : 'Terminé'}
+                {match.statut === 'ouvert' ? t('match_detail.status_open') : t('match_detail.status_done')}
               </Badge>
               <Badge variant="outline" className="rounded-full px-2.5 font-semibold">
-                {matchNiveauLabel((match.niveau ?? 'amateur') as MatchNiveau)}
+                {t(`levels.${(match.niveau ?? 'amateur') as MatchNiveau}`)}
               </Badge>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {formatDateFr(match.date_match)} · {formatHeure(match.heure_match)}
+              {formatDateForApp(match.date_match)} · {formatHeure(match.heure_match)}
             </h1>
             <p className="text-muted-foreground">{match.lieu}</p>
             <p className="text-sm text-muted-foreground">
-              Organisateur :{' '}
+              {t('match_detail.organizer')}{' '}
               <Link
                 to={`/joueur/${match.organisateur_id}`}
                 className="font-semibold text-primary hover:underline"
@@ -381,10 +401,10 @@ export function MatchDetailPage() {
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-2xl font-bold text-foreground">{euros(Number(match.prix))}</p>
-            <p className="text-xs text-muted-foreground">par joueur</p>
+            <p className="text-2xl font-bold text-foreground">{eurosForApp(Number(match.prix))}</p>
+            <p className="text-xs text-muted-foreground">{t('common.per_player')}</p>
             <Badge className="mt-3 rounded-full bg-primary/15 font-semibold text-primary hover:bg-primary/20">
-              {places} place{places > 1 ? 's' : ''} restante{places > 1 ? 's' : ''}
+              {t('match_detail.places', { count: places })}
             </Badge>
           </div>
         </div>
@@ -397,24 +417,24 @@ export function MatchDetailPage() {
         {canReserve && (
           <div className="mt-4 space-y-2">
             <Button onClick={() => void reserve()} disabled={actionPending}>
-              Rejoindre
+              {t('match_detail.join')}
             </Button>
-            <p className="text-xs text-muted-foreground">Simulation : aucun paiement en ligne.</p>
+            <p className="text-xs text-muted-foreground">{t('match_detail.sim_payment')}</p>
           </div>
         )}
 
         {!user && match.statut === 'ouvert' && places > 0 && (
           <p className="mt-4 text-sm text-muted-foreground">
             <Link to="/login" className="font-semibold text-primary hover:underline">
-              Connecte-toi
+              {t('common.connect')}
             </Link>{' '}
-            pour réserver.
+            {t('match_detail.login_to_book')}
           </p>
         )}
 
         {user && match.statut === 'ouvert' && isOrg && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Tu es l’organisateur — tu ne peux pas réserver ta propre annonce.
+            {t('match_detail.org_cannot_book')}
           </p>
         )}
       </Card>
@@ -423,26 +443,21 @@ export function MatchDetailPage() {
 
       {showInviteCard && (
         <Card className="shadow-md ring-1 ring-border/80 ring-primary/15">
-          <h2 className="text-lg font-semibold text-foreground">Inviter un joueur</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Envoie une invitation : le joueur reçoit une notification. Il doit ouvrir ce match et cliquer sur
-            « Rejoindre » pour s’inscrire — aucune place n’est réservée.
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">{t('match_detail.invite_title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('match_detail.invite_intro')}</p>
 
           {!user && (
             <p className="mt-4 text-sm text-muted-foreground">
               <Link to="/login" className="font-semibold text-primary hover:underline">
-                Connecte-toi
+                {t('common.connect')}
               </Link>{' '}
-              pour inviter quelqu’un (réservé à l’organisateur ou aux joueurs déjà inscrits).
+              {t('match_detail.invite_login_hint')}
             </p>
           )}
 
           {user && !canInvite && (
             <p className="mt-4 rounded-lg border border-border/80 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-              Seuls <strong className="text-foreground">l’organisateur</strong> du match et les joueurs{' '}
-              <strong className="text-foreground">déjà inscrits</strong> peuvent envoyer une invitation. Tu
-              n’es pas dans ce cas pour l’instant — inscris-toi avec « Rejoindre » ou crée ton propre match.
+              {t('match_detail.invite_restricted')}
             </p>
           )}
 
@@ -450,12 +465,12 @@ export function MatchDetailPage() {
             <>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="min-w-0 flex-1 space-y-2">
-                  <Label htmlFor="invite-pseudo">Pseudo (recherche)</Label>
+                  <Label htmlFor="invite-pseudo">{t('match_detail.pseudo_search')}</Label>
                   <Input
                     id="invite-pseudo"
                     value={inviteQuery}
                     onChange={(e) => setInviteQuery(e.target.value)}
-                    placeholder="Au moins 2 caractères"
+                    placeholder={t('match_detail.placeholder_min_chars')}
                     className="max-w-md"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') void searchInvitePlayers()
@@ -468,7 +483,7 @@ export function MatchDetailPage() {
                   disabled={inviteBusy}
                   onClick={() => void searchInvitePlayers()}
                 >
-                  Rechercher
+                  {t('common.search')}
                 </Button>
               </div>
               {inviteErr && <p className="mt-3 text-sm font-medium text-destructive">{inviteErr}</p>}
@@ -486,7 +501,7 @@ export function MatchDetailPage() {
                         disabled={inviteBusy}
                         onClick={() => void sendInvitation(p.id)}
                       >
-                        Inviter
+                        {t('common.invite')}
                       </Button>
                     </li>
                   ))}
@@ -498,18 +513,18 @@ export function MatchDetailPage() {
       )}
 
       <Card className="shadow-md ring-1 ring-border/80">
-        <h2 className="text-lg font-semibold text-foreground">Participants ({nbInscrits})</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('match_detail.participants', { count: nbInscrits })}</h2>
         <ul className="mt-3 divide-y divide-border">
           {parts.map((p) => (
             <li key={p.id} className="flex items-center justify-between py-3 text-sm">
               <Link to={`/joueur/${p.joueur_id}`} className="font-semibold text-primary hover:underline">
                 {p.profile.pseudo}
               </Link>
-              <span className="text-xs text-muted-foreground">{p.a_paye ? 'Payé' : 'Non payé'}</span>
+              <span className="text-xs text-muted-foreground">{p.a_paye ? t('common.paid') : t('common.unpaid')}</span>
             </li>
           ))}
           {parts.length === 0 && (
-            <li className="py-3 text-muted-foreground">Aucun inscrit pour l’instant.</li>
+            <li className="py-3 text-muted-foreground">{t('match_detail.no_participants')}</li>
           )}
         </ul>
 
@@ -517,7 +532,7 @@ export function MatchDetailPage() {
           <div className="mt-4 border-t border-border pt-4">
             {!canComplete && (
               <p className="mb-2 text-xs text-muted-foreground">
-                Tu pourras cliquer « Match terminé » à partir du jour du match (date prévue).
+                {t('match_detail.complete_hint')}
               </p>
             )}
             <Button
@@ -525,7 +540,7 @@ export function MatchDetailPage() {
               disabled={!canComplete || actionPending}
               onClick={() => void completeMatch()}
             >
-              Match terminé
+              {t('match_detail.mark_complete')}
             </Button>
           </div>
         )}
@@ -533,19 +548,17 @@ export function MatchDetailPage() {
 
       {showMatchStatsReadonly && (
         <Card className="shadow-md ring-1 ring-border/80">
-          <h2 className="text-lg font-semibold text-foreground">Résultats du match</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Statistiques saisies par l’organisateur — lecture seule pour tous les participants.
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">{t('match_detail.results_title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('match_detail.results_intro')}</p>
           <div className="mt-4 overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[28rem] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  <th className="px-3 py-2.5">Joueur</th>
-                  <th className="px-3 py-2.5 text-right tabular-nums">Buts</th>
-                  <th className="px-3 py-2.5 text-right tabular-nums">Passes</th>
-                  <th className="px-3 py-2.5 text-right tabular-nums">C. jaune</th>
-                  <th className="px-3 py-2.5 text-right tabular-nums">C. rouge</th>
+                  <th className="px-3 py-2.5">{t('match_detail.stats_col_player')}</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">{t('common.goals')}</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">{t('common.passes')}</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">{t('common.yellow_card_short')}</th>
+                  <th className="px-3 py-2.5 text-right tabular-nums">{t('common.red_card_short')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -570,15 +583,13 @@ export function MatchDetailPage() {
 
       {isOrg && match.statut === 'termine' && (
         <Card className="shadow-md ring-1 ring-border/80">
-          <h2 className="text-lg font-semibold text-foreground">Statistiques du match</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Saisie réservée à l’organisateur : buts, passes décisives et cartons par joueur inscrit.
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">{t('match_detail.stats_title')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('match_detail.stats_intro')}</p>
           {statsErr && <p className="mt-3 text-sm font-medium text-destructive">{statsErr}</p>}
           {statsMsg && <p className="mt-3 text-sm font-medium text-primary">{statsMsg}</p>}
           {!showStatsEditor ? (
             <Button type="button" className="mt-4" variant="secondary" onClick={() => setShowStatsEditor(true)}>
-              Saisir les stats
+              {t('match_detail.enter_stats')}
             </Button>
           ) : (
             <div className="mt-4 space-y-4">
@@ -597,7 +608,7 @@ export function MatchDetailPage() {
                         {p.profile.pseudo}
                       </Link>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Buts</Label>
+                        <Label className="text-[10px] text-muted-foreground">{t('common.goals')}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -613,7 +624,7 @@ export function MatchDetailPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">Passes</Label>
+                        <Label className="text-[10px] text-muted-foreground">{t('common.passes')}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -629,7 +640,7 @@ export function MatchDetailPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">C. jaune</Label>
+                        <Label className="text-[10px] text-muted-foreground">{t('common.yellow_card_short')}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -645,7 +656,7 @@ export function MatchDetailPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-muted-foreground">C. rouge</Label>
+                        <Label className="text-[10px] text-muted-foreground">{t('common.red_card_short')}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -666,10 +677,10 @@ export function MatchDetailPage() {
               </ul>
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
                 <Button type="button" disabled={actionPending} onClick={() => void submitStats()}>
-                  {actionPending ? 'Enregistrement…' : 'Enregistrer les stats'}
+                  {actionPending ? t('common.saving') : t('match_detail.save_stats')}
                 </Button>
                 <Button type="button" variant="ghost" disabled={actionPending} onClick={() => setShowStatsEditor(false)}>
-                  Fermer
+                  {t('common.close')}
                 </Button>
               </div>
             </div>
@@ -679,11 +690,8 @@ export function MatchDetailPage() {
 
       {match.statut === 'termine' && user && imIn && others.length > 0 && (
         <Card className="shadow-md ring-1 ring-border/80">
-          <h2 className="text-lg font-semibold text-foreground">Noter les joueurs</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choisis une note par joueur, puis clique sur « Valider les notes » pour enregistrer en base (table{' '}
-            <code className="rounded bg-muted px-1 text-xs">notes</code>). Tu ne peux pas te noter toi-même.
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">{t('match_detail.rate_players')}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t('match_detail.rate_intro')}</p>
           <ul className="mt-4 space-y-4">
             {others.map((p) => (
               <li
@@ -709,11 +717,9 @@ export function MatchDetailPage() {
           {err && <p className="mt-4 text-sm font-medium text-destructive">{err}</p>}
           {msg && <p className="mt-2 text-sm font-medium text-primary">{msg}</p>}
           <div className="mt-6 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Les notes déjà enregistrées sont rechargées depuis le serveur après validation.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('match_detail.notes_reload_hint')}</p>
             <Button type="button" disabled={actionPending} onClick={() => void submitNotes()}>
-              {actionPending ? 'Enregistrement…' : 'Valider les notes'}
+              {actionPending ? t('common.saving') : t('match_detail.validate_notes')}
             </Button>
           </div>
         </Card>
@@ -722,7 +728,7 @@ export function MatchDetailPage() {
       {match.statut === 'termine' && user && imIn && others.length === 0 && (
         <Card>
           <p className="text-sm text-muted-foreground">
-            Tu étais le seul inscrit : il n’y a personne d’autre à noter pour ce match.
+            {t('match_detail.alone_no_rate')}
           </p>
         </Card>
       )}
@@ -730,7 +736,7 @@ export function MatchDetailPage() {
       {match.statut === 'termine' && user && !imIn && (
         <Card>
           <p className="text-sm text-muted-foreground">
-            Les notes sont réservées aux joueurs inscrits sur ce match.
+            {t('match_detail.rates_participants_only')}
           </p>
         </Card>
       )}
@@ -738,7 +744,7 @@ export function MatchDetailPage() {
       {match.statut === 'termine' && !user && (
         <Card>
           <p className="text-sm text-muted-foreground">
-            Connecte-toi pour voir ou donner des notes si tu as participé.
+            {t('match_detail.login_for_notes')}
           </p>
         </Card>
       )}
